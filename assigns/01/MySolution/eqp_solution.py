@@ -58,6 +58,8 @@ def aprint(s):
     print(s, end="")
 
 
+# Prints i dots ". ", one recursive call at a time (i.e. an "empty
+# square" placeholder repeated i times). Prints nothing when i <= 0.
 def print_dots(i):
     if i > 0:
         aprint(". ")
@@ -66,6 +68,8 @@ def print_dots(i):
         pass
 
 
+# Prints one board row with the queen at column i: i dots, then "Q ",
+# then (N - i - 1) more dots, followed by a newline.
 def print_row(i):
     print_dots(i)
     aprint("Q ")
@@ -73,6 +77,8 @@ def print_row(i):
     aprint("\n")
 
 
+# Prints the full 8x8 board: one row per entry of bd (bd[row] = the
+# column holding that row's queen), followed by a blank separator line.
 def print_board(bd):
     print_row(bd[0])
     print_row(bd[1])
@@ -85,10 +91,13 @@ def print_board(bd):
     print_newline()
 
 
+# Prints a single blank line.
 def print_newline():
     aprint("\n")
 
 
+# Returns the column stored for row i (i.e. bd[i]), or -1 if i is
+# outside the valid 0..7 row range.
 def board_get(bd, i):
     if i == 0:
         return bd[0]
@@ -110,6 +119,8 @@ def board_get(bd, i):
         return -1
 
 
+# Returns a new board with row i's column set to j, leaving bd itself
+# unchanged (functional update). If i is outside 0..7, bd is returned as-is.
 def board_set(bd, i, j):
     x0, x1, x2, x3, x4, x5, x6, x7 = bd
 
@@ -141,10 +152,15 @@ def board_set(bd, i, j):
         return bd
 
 
+# True if a queen at (i0, j0) does not attack a queen at (i1, j1):
+# different columns and not on a shared diagonal (rows are assumed
+# already distinct by the caller).
 def safety_test1(i0, j0, i1, j1):
     return j0 != j1 and abs(i0 - i1) != abs(j0 - j1)
 
 
+# True if a queen at (i0, j0) is safe against every already-placed queen
+# in rows 0..i of bd, checked one row at a time down from row i.
 def safety_test2(i0, j0, bd, i):
     if i >= 0:
         if safety_test1(i0, j0, i, board_get(bd, i)):
@@ -155,6 +171,13 @@ def safety_test2(i0, j0, bd, i):
         return True
 
 
+# The core backtracking search. Tries to place a queen at (i, j); if
+# safe, either places it and moves to the next row, or (on the last row)
+# prints the completed board as a solution. Either way it then keeps
+# trying later columns in row i, and once row i's columns are exhausted,
+# backtracks to row i - 1 by reusing the column already stored there in
+# bd (avoiding the need for a separate history/stack). Returns the total
+# number of solutions found, added onto whatever nsol started at.
 def search(bd, i, j, nsol):
     if j < N:
         test = safety_test2(i, j, bd, i - 1)
@@ -175,9 +198,9 @@ def search(bd, i, j, nsol):
             return nsol
 
 
+# Runs the search from an empty board and reports the total solution count. 
+# Not part of the original excerpt, a minimal driver added so the program can run.
 def main():
-    # Not part of the original excerpt (see note 5 above): a minimal
-    # driver so the program can actually be run.
     bd0 = (-1, -1, -1, -1, -1, -1, -1, -1)
     nsol = search(bd0, 0, 0, 0)
     aprint("There are " + str(nsol) + " solutions.\n")
