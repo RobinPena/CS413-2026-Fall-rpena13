@@ -112,16 +112,8 @@ points into the program are exercised:
 
 * Manual changes after reviewing the generated code:
 
-  	- After re-reading eqp_solution.py against eqp_source.dats line by line, asked the AI to add a
-  	  per-function explanatory comment above each function (print_dots, print_row, print_board,
-  	  board_get, board_set, safety_test1, safety_test2, search, main) describing what it does and,
-  	  where relevant, how it maps back to the .dats original. This was a documentation-only pass --
-  	  no logic was changed -- committed separately as "Reviewed solution code - Added README.md" so
-  	  the diff between the first working translation and the reviewed/annotated version stays visible
-  	  in the repo history.
-  	- Manually removed __pycache__/*.pyc files that had been accidentally committed, and rewrote
-  	  README.md by hand (this file's structure/wording, plus the AI Reflection section, are my own
-  	  writing, not AI-generated).
+  	- After re-reading eqp_solution.py against eqp_source.dats line by line, asked the AI to add a per-function explanatory comment above each function (print_dots, print_row, print_board,  board_get, board_set, safety_test1, safety_test2, search, main) describing what it does and, where relevant, how it maps back to the .dats original. This was a documentation-only pass. no logic was changed -- committed separately as "Reviewed solution code - Added README.md" so the diff between the first working translation and the reviewed/annotated version stays visible in the repo history.
+  	- Manually removed __pycache__/*.pyc files that had been accidentally committed, and rewrote README.md by hand (this file's structure/wording, plus the AI Reflection section, are my own writing, not AI-generated).
 
 
 
