@@ -1,3 +1,5 @@
+## AI Reflection
+
 In this short exercise, we noted that the AI did as we could have expected from such a short program.  A handful of differences were noted during the translation due to differences between 
 languages. To name some of them: 
 
