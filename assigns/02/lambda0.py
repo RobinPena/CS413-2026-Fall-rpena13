@@ -16,65 +16,65 @@ from dataclasses import dataclass
 from typing import \
     Generic, TypeVar, Callable
 ########################################################################
-@dataclass
+@dataclass #root class for lambda calculus terms
 class T0M000(ABC):
     ctag = "T0M000"
     pass
 type t0erm = T0M000
 ########################################################################
-@dataclass
+@dataclass # variable class for lambda calculus terms
 class T0Mvar(T0M000):
     arg1: tvar
     ctag = "T0Mvar"
 ########################################################################
-@dataclass
+@dataclass # lambda abstraction class for lambda calculus terms
 class T0Mlam(T0M000):
     arg1: tvar
     arg2: t0erm
     ctag = "T0Mlam"
-@dataclass
+@dataclass # fixed-point operator class for lambda calculus terms
 class T0Mfix(T0M000):
-    arg1: tvar
-    arg2: tvar
-    arg3: t0erm
+    arg1: tvar 
+    arg2: tvar 
+    arg3: t0erm 
     ctag = "T0Mfix"
 ########################################################################
-@dataclass
+@dataclass # application class for lambda calculus terms
 class T0Mapp(T0M000):
     arg1: t0erm
     arg2: t0erm
     ctag = "T0Mapp"
 ########################################################################
-@dataclass
+@dataclass # integer literal class for lambda calculus terms
 class T0Mint(T0M000):
     arg1: sint
     ctag = "T0Mint"
-@dataclass
+@dataclass # boolean literal class for lambda calculus terms
 class T0Mbtf(T0M000):
     arg1: bool
     ctag = "T0Mbtf"
-@dataclass
+@dataclass # string literal class for lambda calculus terms
 class T0Mstr(T0M000):
     arg1: strn
     ctag = "T0Mstr"
 ########################################################################
-@dataclass
+@dataclass # primitive operation class for lambda calculus terms
 class T0Mop1(T0M000):
     arg1: strn
     arg2: t0erm
     ctag = "T0Mop1"
-@dataclass
+@dataclass # binary primitive operation class for lambda calculus terms
 class T0Mop2(T0M000):
     arg1: strn
     arg2: t0erm
-    arg3: t0erm
+    arg3: t0erm 
     ctag = "T0Mop2"
 ########################################################################
 @dataclass
 class T0Mif0(T0M000):
     arg1: t0erm
     arg2: t0erm
-    arg3: t0erm
+    arg3: t0erm 
     ctag = "T0Mif0"
 ########################################################################
 ########################################################################
@@ -236,6 +236,8 @@ def t0erm_cbv_evaluate0(term: t0erm) -> t0erm:
                 raise TypeError(f"t0erm_cbv_evaluate0: {term.arg1} expects integers ({t1})")
         else:
             raise TypeError(f"t0erm_cbv_evaluate0({term})")
+
+    #arithmetic evaluations
     elif isinstance(term, T0Mop2):
         if term.arg1 in ("+", "-", "*", "/", "%"):
             t1 = t0erm_cbv_evaluate0(term.arg2)
@@ -252,6 +254,26 @@ def t0erm_cbv_evaluate0(term: t0erm) -> t0erm:
                 else: # term.arg1 == "/"
                     # Integer division rounds down, as in Python.
                     return T0Mint(t1.arg1 // t2.arg1)
+            else:
+                raise TypeError(f"t0erm_cbv_evaluate0: {term.arg1} expects integers ({t1}, {t2})")
+
+        # comparison evaluations 
+        elif term.arg1 in ("<", ">", "<=", ">=", "==", "!="):
+            t1 = t0erm_cbv_evaluate0(term.arg2)
+            t2 = t0erm_cbv_evaluate0(term.arg3)
+            if isinstance(t1, T0Mint) and isinstance(t2, T0Mint):
+                if term.arg1 == "<":
+                    return T0Mbtf(t1.arg1 < t2.arg1)
+                elif term.arg1 == ">":
+                    return T0Mbtf(t1.arg1 > t2.arg1)
+                elif term.arg1 == "<=":
+                    return T0Mbtf(t1.arg1 <= t2.arg1)
+                elif term.arg1 == ">=":
+                    return T0Mbtf(t1.arg1 >= t2.arg1)
+                elif term.arg1 == "==":
+                    return T0Mbtf(t1.arg1 == t2.arg1)
+                else: # term.arg1 == "!="
+                    return T0Mbtf(t1.arg1 != t2.arg1)
             else:
                 raise TypeError(f"t0erm_cbv_evaluate0: {term.arg1} expects integers ({t1}, {t2})")
         else:
