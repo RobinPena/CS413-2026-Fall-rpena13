@@ -120,7 +120,7 @@ def t0erm_size(term: t0erm) -> sint:
     #added cases for pair, fst, snd 
     #each constructer counts as 1 plus 
     #the size of its arguments
-    elif isinstance(term. T0Mpair):
+    elif isinstance(term, T0Mpair):
         return 1 + t0erm_size(term.arg1) + t0erm_size(term.arg2)
     elif isinstance(term, T0Mpfst):
         return 1 + t0erm_size(term.arg1)
