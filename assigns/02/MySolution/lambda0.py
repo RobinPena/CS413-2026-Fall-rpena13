@@ -155,6 +155,14 @@ def t0erm_fvset(term: t0erm) -> fvset:
         return (t0erm_fvset(term.arg2) | t0erm_fvset(term.arg3))
     elif isinstance(term, T0Mif0):
         return (t0erm_fvset(term.arg1) | t0erm_fvset(term.arg2) | t0erm_fvset(term.arg3))
+########################################################################
+#added cases for pair, fst, snd
+    elif isinstance(term, T0Mpair):
+        return (t0erm_fvset(term.arg1) | t0erm_fvset(term.arg2))
+    elif isinstance(term, T0Mpfst):
+        return t0erm_fvset(term.arg1)
+    elif isinstance(term, T0Mpsnd):
+        return t0erm_fvset(term.arg1)
     else:
         raise TypeError(f"t0erm_fvset({term})")
 ########################################################################
