@@ -116,6 +116,16 @@ def t0erm_size(term: t0erm) -> sint:
         return 1 + t0erm_size(term.arg2) + t0erm_size(term.arg3)
     elif isinstance(term, T0Mif0):
         return 1 + t0erm_size(term.arg1) + t0erm_size(term.arg2) + t0erm_size(term.arg3)
+########################################################################
+    #added cases for pair, fst, snd 
+    #each constructer counts as 1 plus 
+    #the size of its arguments
+    elif isinstance(term. T0Mpair):
+        return 1 + t0erm_size(term.arg1) + t0erm_size(term.arg2)
+    elif isinstance(term, T0Mpfst):
+        return 1 + t0erm_size(term.arg1)
+    elif isinstance(term, T0Mpsnd):
+        return 1 + t0erm_size(term.arg1)
     else:
         raise TypeError(f"t0erm_size({term})")
 ########################################################################
