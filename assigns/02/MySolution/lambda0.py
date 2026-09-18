@@ -286,23 +286,3 @@ def t0erm_cbv_evaluate0(term: t0erm) -> t0erm:
 # end of [CS413-2026-Fall/assigns/02/lambda0.py]
 ########################################################################
 ########################################################################
-
-
-#implementing fib function using lambda calc
-#def fibo(x):
-#        return x if x<= 1 else fibo(x-1) + fibo(x-2) 
-
-#equivalent below in lambda calculus
-#fix f(x). if x <= 1 then x else f(x-1) + f(x-2)
-T0Mfix("f", "x", 
-       T0Mif0(
-           T0Mop2("<=", T0Mvar("x"), T0Mint(1)), 
-           T0Mvar("x"), 
-           T0Mop2("+", 
-                  T0Mapp(T0Mvar("f"), T0Mop2("-", T0Mvar("x"), T0Mint(2))), 
-                  T0Mapp(T0Mvar("f"), T0Mop2("-", T0Mvar("x"), T0Mint(1)))
-            )
-        )
-    )
-
-

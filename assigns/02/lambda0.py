@@ -16,65 +16,65 @@ from dataclasses import dataclass
 from typing import \
     Generic, TypeVar, Callable
 ########################################################################
-@dataclass #root class for lambda calculus terms
+@dataclass
 class T0M000(ABC):
     ctag = "T0M000"
     pass
 type t0erm = T0M000
 ########################################################################
-@dataclass # variable class for lambda calculus terms
+@dataclass
 class T0Mvar(T0M000):
     arg1: tvar
     ctag = "T0Mvar"
 ########################################################################
-@dataclass # lambda abstraction class for lambda calculus terms
+@dataclass
 class T0Mlam(T0M000):
     arg1: tvar
     arg2: t0erm
     ctag = "T0Mlam"
-@dataclass # fixed-point operator class for lambda calculus terms
+@dataclass
 class T0Mfix(T0M000):
-    arg1: tvar 
-    arg2: tvar 
-    arg3: t0erm 
+    arg1: tvar
+    arg2: tvar
+    arg3: t0erm
     ctag = "T0Mfix"
 ########################################################################
-@dataclass # application class for lambda calculus terms
+@dataclass
 class T0Mapp(T0M000):
     arg1: t0erm
     arg2: t0erm
     ctag = "T0Mapp"
 ########################################################################
-@dataclass # integer literal class for lambda calculus terms
+@dataclass
 class T0Mint(T0M000):
     arg1: sint
     ctag = "T0Mint"
-@dataclass # boolean literal class for lambda calculus terms
+@dataclass
 class T0Mbtf(T0M000):
     arg1: bool
     ctag = "T0Mbtf"
-@dataclass # string literal class for lambda calculus terms
+@dataclass
 class T0Mstr(T0M000):
     arg1: strn
     ctag = "T0Mstr"
 ########################################################################
-@dataclass # primitive operation class for lambda calculus terms
+@dataclass
 class T0Mop1(T0M000):
     arg1: strn
     arg2: t0erm
     ctag = "T0Mop1"
-@dataclass # binary primitive operation class for lambda calculus terms
+@dataclass
 class T0Mop2(T0M000):
     arg1: strn
     arg2: t0erm
-    arg3: t0erm 
+    arg3: t0erm
     ctag = "T0Mop2"
 ########################################################################
 @dataclass
 class T0Mif0(T0M000):
     arg1: t0erm
     arg2: t0erm
-    arg3: t0erm 
+    arg3: t0erm
     ctag = "T0Mif0"
 ########################################################################
 ########################################################################
@@ -236,8 +236,6 @@ def t0erm_cbv_evaluate0(term: t0erm) -> t0erm:
                 raise TypeError(f"t0erm_cbv_evaluate0: {term.arg1} expects integers ({t1})")
         else:
             raise TypeError(f"t0erm_cbv_evaluate0({term})")
-
-    #arithmetic evaluations
     elif isinstance(term, T0Mop2):
         if term.arg1 in ("+", "-", "*", "/", "%"):
             t1 = t0erm_cbv_evaluate0(term.arg2)
@@ -256,8 +254,6 @@ def t0erm_cbv_evaluate0(term: t0erm) -> t0erm:
                     return T0Mint(t1.arg1 // t2.arg1)
             else:
                 raise TypeError(f"t0erm_cbv_evaluate0: {term.arg1} expects integers ({t1}, {t2})")
-
-        # comparison evaluations 
         elif term.arg1 in ("<", ">", "<=", ">=", "==", "!="):
             t1 = t0erm_cbv_evaluate0(term.arg2)
             t2 = t0erm_cbv_evaluate0(term.arg3)
@@ -286,23 +282,3 @@ def t0erm_cbv_evaluate0(term: t0erm) -> t0erm:
 # end of [CS413-2026-Fall/assigns/02/lambda0.py]
 ########################################################################
 ########################################################################
-
-
-#implementing fib function using lambda calc
-#def fibo(x):
-#        return x if x<= 1 else fibo(x-1) + fibo(x-2) 
-
-#equivalent below in lambda calculus
-#fix f(x). if x <= 1 then x else f(x-1) + f(x-2)
-T0Mfix("f", "x", 
-       T0Mif0(
-           T0Mop2("<=", T0Mvar("x"), T0Mint(1)), 
-           T0Mvar("x"), 
-           T0Mop2("+", 
-                  T0Mapp(T0Mvar("f"), T0Mop2("-", T0Mvar("x"), T0Mint(2))), 
-                  T0Mapp(T0Mvar("f"), T0Mop2("-", T0Mvar("x"), T0Mint(1)))
-            )
-        )
-    )
-
-
