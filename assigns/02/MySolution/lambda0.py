@@ -302,19 +302,16 @@ def t0erm_cbv_evaluate0(term: t0erm) -> t0erm:
                     return T0Mbtf(t1.arg1 != t2.arg1)
             else:
                 raise TypeError(f"t0erm_cbv_evaluate0: {term.arg1} expects integers ({t1}, {t2})")
-
+        else:
+            raise TypeError(f"t0erm_cbv_evaluate0({term})")
 ########################################################################
-#added cases for pair, fst, snd 
-        elif isinstance(term, T0Mpair):
+#added case for pair, return pair of evaluated arguments
+    elif isinstance(term, T0Mpair):
             t1 = t0erm_cbv_evaluate0(term.arg1)
             t2 = t0erm_cbv_evaluate0(term.arg2)
             return T0Mpair(t1, t2)
-        else:
-            raise TypeError(f"t0erm_cbv_evaluate0({term})")
-
     else:
-        raise TypeError(f"t0erm_cbv_evaluate0({term})")        
-#
+        raise TypeError(f"t0erm_cbv_evaluate0({term})")
 ########################################################################
 ########################################################################
 # end of [CS413-2026-Fall/assigns/02/lambda0.py]
