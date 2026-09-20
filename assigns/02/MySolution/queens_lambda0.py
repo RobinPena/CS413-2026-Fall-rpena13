@@ -113,14 +113,7 @@ def make_board_get():
 
 
 def main():
-
-    #test for make_board_get
-    bd = encode_board([3, 1, 4, 1])
-    for i in range(4):
-           term = app_multi(make_board_get(), [bd, T0Mint(i)])
-           print(i, t0erm_cbv_evaluate0(term))
-    
-       
+    print("make_board_get() done ")
 
 if __name__ == "__main__":
     main()
