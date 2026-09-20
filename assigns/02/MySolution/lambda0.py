@@ -313,13 +313,20 @@ def t0erm_cbv_evaluate0(term: t0erm) -> t0erm:
 
 #added case for pfst, return first element of evaluated pair 
     elif isinstance(term, T0Mpfst):
-            return t0erm_cbv_evaluate0(t1.arg1)
-    
+        t1 = t0erm_cbv_evaluate0(term.arg1)
+        if isinstance(t1, T0Mpair):
+            return t1.arg1
+        else:
+            raise TypeError(f"t0erm_cbv_evaluate0: fst expects a pair ({t1})")
+#added case for psnd, return second element of evaluated pair 
     elif isinstance(term, T0Mpsnd):
-            return t0erm_cbv_evaluate0(t1.arg2)
-    else:
+        t1 = t0erm_cbv_evaluate0(term.arg1)
+        if isinstance(t1, T0Mpair):
+            return t1.arg2
+        else:
             raise TypeError(f"t0erm_cbv_evaluate0: snd expects a pair ({t1})")
-    
+    else:
+            raise TypeError(f"t0erm_cbv_evaluate0({term})")
 ########################################################################
 ########################################################################
 # end of [CS413-2026-Fall/assigns/02/lambda0.py]

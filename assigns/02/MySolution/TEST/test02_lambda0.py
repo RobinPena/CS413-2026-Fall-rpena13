@@ -71,7 +71,7 @@ class TestPairSubstitution(unittest.TestCase):
         self.assertEqual(substituted_term, expected_term)
 
 class TestPairEvaluation(unittest.TestCase):
-        # test that evaluating a pair returns the pair itself (since pairs are values)
+        # components are already values, so the result matches the input
     def test_pair_construction(self):
         pair_term = T0Mpair(T0Mint(3), T0Mint(1))
         evaluated_term = t0erm_cbv_evaluate0(pair_term)
