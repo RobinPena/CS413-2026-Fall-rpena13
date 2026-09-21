@@ -170,5 +170,42 @@ class TestSafetyTests(unittest.TestCase):
                 self.assertEqual(
                     self.safe2(i, self.solution[i], self.bd, i - 1),
                     T0Mbtf(True))
+def board_is_legal(columns):
+    """True when no two queens share a column or a diagonal.
+
+    Rows are distinct by construction: the board stores one column per row.
+    """
+    n = len(columns)
+    for a in range(n):
+        for b in range(a + 1, n):
+            if columns[a] == columns[b]:
+                return False
+            if abs(a - b) == abs(columns[a] - columns[b]):
+                return False
+    return True
+
+
+class TestSearch(unittest.TestCase):
+
+    def test_known_solution_counts(self):
+        # the classic sequence for N = 1..4
+        for n, expected in [(1, 1), (2, 0), (3, 0), (4, 2)]:
+            with self.subTest(n=n):
+                count, _ = run_queens(n)
+                self.assertEqual(count, expected)
+
+    def test_returned_board_is_legal(self):
+        count, board = run_queens(4)
+        self.assertEqual(count, 2)
+        self.assertIsNotNone(board)
+        self.assertTrue(board_is_legal(board))
+        self.assertEqual(len(board), 4)
+
+    def test_no_board_when_no_solution(self):
+        count, board = run_queens(3)
+        self.assertEqual(count, 0)
+        self.assertIsNone(board)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

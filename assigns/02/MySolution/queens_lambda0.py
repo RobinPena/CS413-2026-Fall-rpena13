@@ -4,11 +4,7 @@ from pathlib import Path
 # This file sits in MySolution/ alongside the extended interpreter.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from lambda0 import (
-    T0Mint, T0Mbtf, T0Mvar, T0Mlam, T0Mfix, T0Mapp, T0Mif0, T0Mop1, T0Mop2,
-    T0Mpair, T0Mpfst, T0Mpsnd,
-    t0erm_cbv_evaluate0,
-)
+from lambda0 import *
 
 # substitution-based evaluation nests deeply 
 # raise the limit before running.
@@ -164,7 +160,8 @@ def make_safety_test2():
     True when the queen at (i0, j0) clashes with no queen in rows 0..i.
     """
     # the column stored in row i of the board
-    column_at_i = app_multi(make_board_get(), [T0Mvar("bd"), T0Mvar("i")])
+    column_at_i = app_multi(make_board_get(), 
+                    [T0Mvar("bd"), T0Mvar("i")])
 
     # does the candidate at (i0, j0) clash with the queen at (i, column_at_i)?
     no_clash = app_multi(make_safety_test1(), [
@@ -184,3 +181,121 @@ def make_safety_test2():
                 andalso(no_clash, check_next_row),  # stops at the first clash
                 T0Mbtf(True),                       # no rows left: safe
             )))
+
+def make_search(n):
+    """fix f(bd). λi. λj. λnsol. λbest.
+            if j < N then
+                if 
+                    safety_test2 i j bd (i - 1) 
+                then
+                    let bd1 = board_set bd i j in
+                        if i + 1 == N then f bd i (j+1) (nsol+1) bd1
+                        else               
+                            f bd1 (i+1) 0 nsol best
+                else                    
+                    f bd i (j+1) nsol best
+            else
+                if i > 0 
+                then 
+                    f bd (i-1) ((board_get bd (i-1)) + 1) nsol best
+                else 
+                    (nsol, best)
+
+        Mirrors the ATS2 `search`, plus one parameter: `best` carries the most
+        recently completed board out, since there is no I/O to print it with.
+        The result is the pair (solution count, one solution board).
+    """
+    N = T0Mint(n)
+
+    board_get = make_board_get()
+    board_set = make_board_set()
+    safety_test2 = make_safety_test2()
+
+    # is the candidate at (i, j) safe against every queen in rows 0..i-1?
+    is_safe = app_multi(safety_test2, [
+        T0Mvar("i"), T0Mvar("j"), T0Mvar("bd"),
+        T0Mop2("-", T0Mvar("i"), T0Mint(1)),
+    ])
+
+    # the board with row i set to column j
+    placed = app_multi(board_set, [T0Mvar("bd"), 
+                        T0Mvar("i"), T0Mvar("j")])
+
+    # board complete: record it, then keep scanning this row from j+1.
+    # note this passes bd, not bd1 -- the ATS2 original does the same.
+    record_solution = app_multi(T0Mvar("f"), [
+        T0Mvar("bd"),
+        T0Mvar("i"),
+        T0Mop2("+", T0Mvar("j"), T0Mint(1)),
+        T0Mop2("+", T0Mvar("nsol"), T0Mint(1)),
+        T0Mvar("bd1"),
+    ])
+
+    # board still partial: commit the placement, move to the next row
+    descend = app_multi(T0Mvar("f"), [
+        T0Mvar("bd1"),
+        T0Mop2("+", T0Mvar("i"), T0Mint(1)),
+        T0Mint(0),
+        T0Mvar("nsol"),
+        T0Mvar("best"),
+    ])
+
+    # placement rejected: try the next column in this row
+    try_next_column = app_multi(T0Mvar("f"), [
+        T0Mvar("bd"),
+        T0Mvar("i"),
+        T0Mop2("+", T0Mvar("j"), T0Mint(1)),
+        T0Mvar("nsol"),
+        T0Mvar("best"),
+    ])
+
+    # row exhausted: back up one row, resume after its current column
+    backtrack = app_multi(T0Mvar("f"), [
+        T0Mvar("bd"),
+        T0Mop2("-", T0Mvar("i"), T0Mint(1)),
+        T0Mop2("+",
+               app_multi(board_get, [T0Mvar("bd"),
+                        T0Mop2("-", T0Mvar("i"), T0Mint(1))]),
+               T0Mint(1)),
+        T0Mvar("nsol"),
+        T0Mvar("best"),
+    ])
+
+    # bd1 is bound once and used by both branches below
+    place_queen = let_bind("bd1", placed,
+        T0Mif0(
+            T0Mop2("==", T0Mop2("+", T0Mvar("i"), T0Mint(1)), N),
+            record_solution,
+            descend,
+        ))
+
+    body = T0Mif0(
+        T0Mop2("<", T0Mvar("j"), N),
+        T0Mif0(is_safe, place_queen, try_next_column),
+        T0Mif0(
+            T0Mop2(">", T0Mvar("i"), T0Mint(0)),
+            backtrack,
+            T0Mpair(T0Mvar("nsol"), T0Mvar("best")),   # done
+        ),
+    )
+
+    return T0Mfix("f", "bd", lam_multi(["i", "j", "nsol", "best"], body))
+
+def run_queens(n):
+    """Build, evaluate, and decode the n-queens search.
+
+    Returns (solution_count, board_columns), with board_columns None
+    when there are no solutions.
+    """
+    start = encode_board([0] * n)
+    term = app_multi(make_search(n), [
+        start,        # bd:   working board
+        T0Mint(0),    # i:    current row
+        T0Mint(0),    # j:    current column
+        T0Mint(0),    # nsol: solutions found so far
+        start,        # best: placeholder until a solution is recorded
+    ])
+    result = t0erm_cbv_evaluate0(term)
+    count = result.arg1.arg1                  # T0Mpair -> T0Mint -> int
+    board = decode_board(result.arg2, n)
+    return count, (board if count > 0 else None)
