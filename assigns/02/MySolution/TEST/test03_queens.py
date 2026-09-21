@@ -5,9 +5,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from lambda0 import *
-from queens_lambda0 import (
-    app_multi, decode_board, encode_board, make_board_get,make_board_set
-)
+from queens_lambda0 import *
 
 class TestBoard(unittest.TestCase):
 
@@ -101,6 +99,76 @@ class TestAbsPrimitive(unittest.TestCase):
         self.assertEqual(t0erm_fvset(term), frozenset({"x"}))
         self.assertEqual(t0erm_subst0(term, "x", T0Mint(-4)),
                          T0Mop1("abs", T0Mint(-4)))
-        
+
+
+class TestSafetyTests(unittest.TestCase):
+
+    def setUp(self):
+        self.safety1 = make_safety_test1()
+        self.safety2 = make_safety_test2()
+        # a known-good 4-queens solution: row i holds a queen in column bd[i]
+        self.solution = [1, 3, 0, 2]
+        self.bd = encode_board(self.solution)
+
+    def safe1(self, i0, j0, i1, j1):
+        term = app_multi(self.safety1,
+                         [T0Mint(i0), T0Mint(j0), T0Mint(i1), T0Mint(j1)])
+        return t0erm_cbv_evaluate0(term)
+
+    def safe2(self, i0, j0, bd, i):
+        term = app_multi(self.safety2,
+                         [T0Mint(i0), T0Mint(j0), bd, T0Mint(i)])
+        return t0erm_cbv_evaluate0(term)
+
+    # --- safety_test1 ---------------------------------------------------
+
+    def test_same_column_conflicts(self):
+        self.assertEqual(self.safe1(0, 2, 3, 2), T0Mbtf(False))
+
+    def test_down_right_diagonal_conflicts(self):
+        # (0,0) and (2,2) share a diagonal
+        self.assertEqual(self.safe1(0, 0, 2, 2), T0Mbtf(False))
+
+    def test_down_left_diagonal_conflicts(self):
+        # (0,2) and (2,0) share the other diagonal -- this is the case
+        # the abs primitive exists for
+        self.assertEqual(self.safe1(0, 2, 2, 0), T0Mbtf(False))
+
+    def test_non_attacking_pair(self):
+        # a knight's move apart: different column, different diagonal
+        self.assertEqual(self.safe1(0, 0, 1, 2), T0Mbtf(True))
+
+    def test_same_row_reported_safe(self):
+        # the board stores one column per row, so two queens cannot share
+        # a row; the ATS2 original never checks for it, and neither do we
+        self.assertEqual(self.safe1(1, 0, 1, 3), T0Mbtf(True))
+
+    # --- safety_test2 ---------------------------------------------------
+
+    def test_no_rows_to_check_is_safe(self):
+        # i < 0 means there are no earlier rows to conflict with
+        self.assertEqual(self.safe2(0, 0, self.bd, -1), T0Mbtf(True))
+
+    def test_safe_against_all_earlier_rows(self):
+        # row 2 column 0 is this solution's own placement, so it must
+        # clear both queens already standing in rows 0 and 1
+        self.assertEqual(self.safe2(2, 0, self.bd, 1), T0Mbtf(True))
+
+    def test_column_clash_with_earlier_row(self):
+        # row 0 already holds column 1
+        self.assertEqual(self.safe2(2, 1, self.bd, 1), T0Mbtf(False))
+
+    def test_diagonal_clash_with_earlier_row(self):
+        # (2,2) and the queen at (1,3) share a diagonal
+        self.assertEqual(self.safe2(2, 2, self.bd, 1), T0Mbtf(False))
+
+    def test_whole_solution_is_internally_consistent(self):
+        # every queen in the known solution must clear all queens
+        # standing in rows before it
+        for i in range(1, len(self.solution)):
+            with self.subTest(row=i):
+                self.assertEqual(
+                    self.safe2(i, self.solution[i], self.bd, i - 1),
+                    T0Mbtf(True))
 if __name__ == "__main__":
     unittest.main(verbosity=2)

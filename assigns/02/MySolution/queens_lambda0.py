@@ -153,3 +153,34 @@ def make_safety_test1():
 
     return lam_multi(["i0", "j0", "i1", "j1"],
                      andalso(diff_column, diff_diagonal))
+
+
+def make_safety_test2():
+    """fix t(i0). λj0. λbd. λi.
+           if i >= 0 then
+               safety_test1 i0 j0 i (board_get bd i)  andalso  t i0 j0 bd (i - 1)
+           else true
+
+    True when the queen at (i0, j0) clashes with no queen in rows 0..i.
+    """
+    # the column stored in row i of the board
+    column_at_i = app_multi(make_board_get(), [T0Mvar("bd"), T0Mvar("i")])
+
+    # does the candidate at (i0, j0) clash with the queen at (i, column_at_i)?
+    no_clash = app_multi(make_safety_test1(), [
+        T0Mvar("i0"), T0Mvar("j0"), T0Mvar("i"), column_at_i,
+    ])
+
+    # keep checking the row above - only i changes
+    check_next_row = app_multi(T0Mvar("t"), [
+        T0Mvar("i0"), T0Mvar("j0"), T0Mvar("bd"),
+        T0Mop2("-", T0Mvar("i"), T0Mint(1)),
+    ])
+
+    return T0Mfix("t", "i0",
+        lam_multi(["j0", "bd", "i"],
+            T0Mif0(
+                T0Mop2(">=", T0Mvar("i"), T0Mint(0)),
+                andalso(no_clash, check_next_row),  # stops at the first clash
+                T0Mbtf(True),                       # no rows left: safe
+            )))
