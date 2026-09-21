@@ -299,3 +299,14 @@ def run_queens(n):
     count = result.arg1.arg1                  # T0Mpair -> T0Mint -> int
     board = decode_board(result.arg2, n)
     return count, (board if count > 0 else None)
+
+def main():
+    n = int(sys.argv[1]) if len(sys.argv) > 1 else 8
+    count, board = run_queens(n)
+    print(f"N = {n}: {count} solution(s)")
+    if count > 0:
+        print_board(board)
+
+
+if __name__ == "__main__":
+    main()
