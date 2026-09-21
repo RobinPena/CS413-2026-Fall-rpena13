@@ -4,7 +4,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from lambda0 import T0Mint, t0erm_cbv_evaluate0
+from lambda0 import *
 from queens_lambda0 import (
     app_multi, decode_board, encode_board, make_board_get,make_board_set
 )
@@ -66,5 +66,41 @@ class TestBoardSet(unittest.TestCase):
         term = app_multi(self.board_set, [self.bd, T0Mint(1), T0Mint(9)])
         self.assertEqual(t0erm_cbv_evaluate0(term), encode_board([3, 9, 4, 1]))
 
+
+class TestAbsPrimitive(unittest.TestCase):
+    """abs was added to T0Mop1 for the queens translation's diagonal check."""
+
+    def test_abs_of_values(self):
+        for operand, expected in [(7, 7), (-7, 7), (0, 0), (-1, 1)]:
+            with self.subTest(operand=operand):
+                term = T0Mop1("abs", T0Mint(operand))
+                self.assertEqual(t0erm_cbv_evaluate0(term), T0Mint(expected))
+
+    def test_abs_evaluates_its_operand_first(self):
+        # the operand is reduced before abs is applied, like every other
+        # call-by-value operator: abs(3 - 10) = 7
+        term = T0Mop1("abs", T0Mop2("-", T0Mint(3), T0Mint(10)))
+        self.assertEqual(t0erm_cbv_evaluate0(term), T0Mint(7))
+
+    def test_abs_rejects_non_integers(self):
+        term = T0Mop1("abs", T0Mbtf(True))
+        with self.assertRaises(TypeError):
+            t0erm_cbv_evaluate0(term)
+
+    def test_unknown_unary_operator_still_rejected(self):
+        # the guard must not have been loosened by adding a third operator
+        term = T0Mop1("!", T0Mint(1))
+        with self.assertRaises(TypeError):
+            t0erm_cbv_evaluate0(term)
+
+    def test_abs_in_structural_functions(self):
+        # "abs" lives in arg1 as a string, so size/fvset/subst need no
+        # new cases -- this confirms they handle it as an ordinary T0Mop1
+        term = T0Mop1("abs", T0Mvar("x"))
+        self.assertEqual(t0erm_size(term), 2)                    # op1 + var
+        self.assertEqual(t0erm_fvset(term), frozenset({"x"}))
+        self.assertEqual(t0erm_subst0(term, "x", T0Mint(-4)),
+                         T0Mop1("abs", T0Mint(-4)))
+        
 if __name__ == "__main__":
     unittest.main(verbosity=2)

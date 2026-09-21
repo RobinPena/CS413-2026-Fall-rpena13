@@ -117,9 +117,6 @@ def t0erm_size(term: t0erm) -> sint:
     elif isinstance(term, T0Mif0):
         return 1 + t0erm_size(term.arg1) + t0erm_size(term.arg2) + t0erm_size(term.arg3)
 ########################################################################
-    #added cases for pair, fst, snd 
-    #each constructer counts as 1 plus 
-    #the size of its arguments
     elif isinstance(term, T0Mpair):
         return 1 + t0erm_size(term.arg1) + t0erm_size(term.arg2)
     elif isinstance(term, T0Mpfst):
@@ -156,7 +153,6 @@ def t0erm_fvset(term: t0erm) -> fvset:
     elif isinstance(term, T0Mif0):
         return (t0erm_fvset(term.arg1) | t0erm_fvset(term.arg2) | t0erm_fvset(term.arg3))
 ########################################################################
-#added cases for pair, fst, snd
     elif isinstance(term, T0Mpair):
         return (t0erm_fvset(term.arg1) | t0erm_fvset(term.arg2))
     elif isinstance(term, T0Mpfst):
@@ -171,6 +167,7 @@ def t0erm_fvset(term: t0erm) -> fvset:
 # [tsub] is assumed to be closed;
 # therefore, no capturing is possible!
 #
+########################################################################
 def t0erm_subst0\
 (term: t0erm, x0: tvar, tsub: t0erm) -> t0erm:
     def subst0(term: t0erm) -> t0erm:
@@ -208,7 +205,6 @@ def t0erm_subst0\
         elif isinstance(term, T0Mif0):
             return T0Mif0(subst0(term.arg1), subst0(term.arg2), subst0(term.arg3))
 ########################################################################
-#added cases for pair, fst, snd
         elif isinstance(term, T0Mpair):
             return T0Mpair(subst0(term.arg1), subst0(term.arg2))
         elif isinstance(term, T0Mpfst):
@@ -218,10 +214,8 @@ def t0erm_subst0\
         else:
             raise TypeError(f"subst0({term})")
     return subst0(term)
-#
 ########################################################################
 ########################################################################
-#
 def t0erm_cbv_evaluate0(term: t0erm) -> t0erm:
     if False:
         return None
@@ -241,6 +235,8 @@ def t0erm_cbv_evaluate0(term: t0erm) -> t0erm:
                 (t0erm_subst0(t0erm_subst0(t1.arg3, t1.arg2, t2), t1.arg1, t1))
         else:
             raise TypeError(f"t0erm_cbv_evaluate0: application expects a lam/fix ({t1})")
+
+    #boolean eval
     elif isinstance(term, T0Mif0):
         t1 = t0erm_cbv_evaluate0(term.arg1)
         if isinstance(t1, T0Mbtf):
@@ -250,20 +246,26 @@ def t0erm_cbv_evaluate0(term: t0erm) -> t0erm:
                 return t0erm_cbv_evaluate0(term.arg3)
         else:
             raise TypeError(f"t0erm_cbv_evaluate0: condition expects a boolean ({t1})")
+
+    #unary evaluations
     elif isinstance(term, T0Mop1):
-        if term.arg1 in ("+", "-"):
-            t1 = t0erm_cbv_evaluate0(term.arg2)
+        # "abs" added for the queens translation: the ATS2 diagonal check
+        # is abs(i0 - i1) != abs(j0 - j1)
+        if term.arg1 in ("+", "-", "abs"):
+            t1 = t0erm_cbv_evaluate0(term.arg2)   # operand first, call-by-value
             if isinstance(t1, T0Mint):
                 if term.arg1 == "+":
                     return T0Mint(t1.arg1)
-                else:
+                elif term.arg1 == "-":
                     return T0Mint(-(t1.arg1))
+                else:  # term.arg1 == "abs"
+                    return T0Mint(abs(t1.arg1))
             else:
                 raise TypeError(f"t0erm_cbv_evaluate0: {term.arg1} expects integers ({t1})")
         else:
             raise TypeError(f"t0erm_cbv_evaluate0({term})")
 
-    #arithmetic evaluations
+    #bynary evaluations
     elif isinstance(term, T0Mop2):
         if term.arg1 in ("+", "-", "*", "/", "%"):
             t1 = t0erm_cbv_evaluate0(term.arg2)
@@ -304,21 +306,21 @@ def t0erm_cbv_evaluate0(term: t0erm) -> t0erm:
                 raise TypeError(f"t0erm_cbv_evaluate0: {term.arg1} expects integers ({t1}, {t2})")
         else:
             raise TypeError(f"t0erm_cbv_evaluate0({term})")
+
 ########################################################################
-#added case for pair, return pair of evaluated arguments
+########################################################################  
     elif isinstance(term, T0Mpair):
             t1 = t0erm_cbv_evaluate0(term.arg1)
             t2 = t0erm_cbv_evaluate0(term.arg2)
             return T0Mpair(t1, t2)
-
-#added case for pfst, return first element of evaluated pair 
+    
     elif isinstance(term, T0Mpfst):
         t1 = t0erm_cbv_evaluate0(term.arg1)
         if isinstance(t1, T0Mpair):
             return t1.arg1
         else:
             raise TypeError(f"t0erm_cbv_evaluate0: fst expects a pair ({t1})")
-#added case for psnd, return second element of evaluated pair 
+        
     elif isinstance(term, T0Mpsnd):
         t1 = t0erm_cbv_evaluate0(term.arg1)
         if isinstance(t1, T0Mpair):
@@ -327,6 +329,7 @@ def t0erm_cbv_evaluate0(term: t0erm) -> t0erm:
             raise TypeError(f"t0erm_cbv_evaluate0: snd expects a pair ({t1})")
     else:
             raise TypeError(f"t0erm_cbv_evaluate0({term})")
+    
 ########################################################################
 ########################################################################
 # end of [CS413-2026-Fall/assigns/02/lambda0.py]

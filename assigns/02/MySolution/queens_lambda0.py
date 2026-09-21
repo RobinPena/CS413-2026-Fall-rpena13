@@ -134,8 +134,6 @@ def make_board_set():
                     )
             )))
 
-
-
 def main():
     print("make_board_get() done ")
 
