@@ -111,6 +111,30 @@ def make_board_get():
                 ]),
             )))
 
+def make_board_set():
+
+    return T0Mfix("s", "bd",                          
+            T0Mlam("i", 
+                T0Mlam("j",                         
+                    T0Mif0(
+                        T0Mop2("==", T0Mvar("i"), T0Mint(0)),
+
+                        # base: replace this head, keep the rest of the spine as-is
+                        T0Mpair(T0Mvar("j"), T0Mpsnd(T0Mvar("bd"))),
+
+                        # step: keep this head, rebuild the tail recursively
+                        T0Mpair(
+                            T0Mpfst(T0Mvar("bd")), 
+                            app_multi(T0Mvar("s"), [
+                                T0Mpsnd(T0Mvar("bd")),
+                                T0Mop2("-", T0Mvar("i"), T0Mint(1)),
+                                T0Mvar("j"), 
+                                ]),
+                        )
+                    )
+            )))
+
+
 
 def main():
     print("make_board_get() done ")
