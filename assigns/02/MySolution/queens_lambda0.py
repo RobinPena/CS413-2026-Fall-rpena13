@@ -300,6 +300,7 @@ def run_queens(n):
     board = decode_board(result.arg2, n)
     return count, (board if count > 0 else None)
 
+#show board, # of solutions
 def main():
     n = int(sys.argv[1]) if len(sys.argv) > 1 else 8
     count, board = run_queens(n)
