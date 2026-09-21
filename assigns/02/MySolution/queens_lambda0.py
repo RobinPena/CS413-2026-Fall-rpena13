@@ -112,7 +112,10 @@ def make_board_get():
             )))
 
 def make_board_set():
-
+    """fix s(bd). λi. λj.
+            if i == 0 then (j, snd bd)
+            else (fst bd, s (snd bd) (i - 1) j)
+        """
     return T0Mfix("s", "bd",                          
             T0Mlam("i", 
                 T0Mlam("j",                         
@@ -134,9 +137,19 @@ def make_board_set():
                     )
             )))
 
-def main():
-    print("make_board_get() done ")
+def make_safety_test1():
+    """λi0. λj0. λi1. λj1.
+           j0 != j1  andalso  abs(i0 - i1) != abs(j0 - j1)
 
-if __name__ == "__main__":
-    main()
-    
+    True when queens at (i0, j0) and (i1, j1) do not attack each other.
+    """
+    # different columns
+    diff_column = T0Mop2("!=", T0Mvar("j0"), T0Mvar("j1"))
+
+    # different diagonals: the row gap and column gap must not match
+    row_gap = T0Mop1("abs", T0Mop2("-", T0Mvar("i0"), T0Mvar("i1")))
+    col_gap = T0Mop1("abs", T0Mop2("-", T0Mvar("j0"), T0Mvar("j1")))
+    diff_diagonal = T0Mop2("!=", row_gap, col_gap)
+
+    return lam_multi(["i0", "j0", "i1", "j1"],
+                     andalso(diff_column, diff_diagonal))
