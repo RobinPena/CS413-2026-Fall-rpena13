@@ -3,7 +3,7 @@ Turning Informal Requirements into a Requirements Specification
 
 ## Due date
 
-To be announced.
+Tuesday, the 29th of September, 2026
 
 ## Objective
 
