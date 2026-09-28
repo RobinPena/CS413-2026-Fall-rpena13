@@ -252,7 +252,30 @@ accounts, multi-user collaboration, and public hosting — all explicitly de-sco
 
 | Requirement ID | Source (brief passage / answer / assumption) |
 | --- | --- |
-| FR-1 |  |
+| FR-1 | Brief, "Trying a program": "I imagine opening the page, typing or pasting a short program..." |
+| FR-2 | Brief, "Trying a program": "Having a few examples to start from would help... Students should be able to modify an example without losing access to the original." Confirmed and extended by **Q1 answer**. |
+| FR-3 | Brief, "Trying a program": "Sometimes I only want to check whether a program compiles." |
+| FR-4 | Brief, "Trying a program": "At other times, I want to run it and see the answer." |
+| FR-5 | Assumption, derived from FR-3/FR-4: distinct compile-only and run actions (brief) imply their results must be visibly distinguishable to avoid confusing the two. |
+| FR-6 | Brief, "Understanding what happened": "A compilation error and a failure while running the program should not look like the same thing." |
+| FR-7 | Brief, "Understanding what happened": "When the compiler reports where the problem occurred, the environment should help the student find that place in the source." |
+| FR-8 | Brief, "Understanding what happened": "If it cannot reach the compiler, I do not want students to think their program is wrong." |
+| FR-9 | Brief, "Understanding what happened": "They should be able to keep their work and try again when the problem is resolved." |
+| FR-10 | Brief, "Understanding what happened": "There should be a way to stop it and move on." Scope extended to compilation by **Q5 answer**. |
+| FR-11 | Brief, "Keeping examples as tests": "I would be frustrated if refreshing the page meant losing the examples I had prepared. Students will also want to come back to their work in another session." Explicit-save / no-auto-save behavior per **Q2 answer**. |
+| FR-12 | Brief, "Keeping examples as tests": "a collection of named tests. Each test would contain a program and some record of what should happen... Some tests would expect an answer... Others would intentionally contain an error..." |
+| FR-13 | Brief, "Keeping examples as tests": "a student could run the collection again to check whether anything has broken." |
+| FR-14 | Brief, "Keeping examples as tests": "a quick summary of which tests worked as expected, with enough detail to investigate the ones that did not. One troublesome test should not make the rest of the collection useless." |
+| FR-15 | Brief, "The compiler is still evolving": "I would like work on the interface to proceed even before the compiler is ready... we should be able to connect the real compiler without starting the interface over again." |
+| FR-16 | Brief, "The compiler is still evolving": "Using sample compiler responses... would be acceptable... as long as nobody mistakes them for actual compilation results." Format left open per **Q7 answer**. |
+| FR-17 | Brief, "Trying a program": "inspect information the compiler produces, such as an abstract syntax tree or generated code, when that information is available... I do not want all of that detail to get in the way." Returned as text per **Q4 answer**. |
+| FR-18 | Brief, "Understanding what happened": "If I change a program while an earlier run is still working, I need to know which version produced the result I am seeing." |
+| FR-19 | Brief, "Trying a program": "Students may already have programs saved in files, and they should not have to retype them." |
+| QR-1 | Brief, "Keeping the project manageable": "The environment should respond promptly to ordinary actions, even when the compiler takes longer to finish." Numeric target (1s) is a **proposal/assumption**, not stated in the brief. |
+| QR-2 | Brief, "Understanding what happened": "The page should remain usable while work is in progress." |
+| QR-3 | Brief, "Keeping the project manageable": "Students should be able to perform the main tasks with a keyboard, and messages should make sense without depending only on colors." |
+| QR-4 | Brief, "Keeping examples as tests": "One troublesome test should not make the rest of the collection useless." (restated as a quality standard; same source as FR-14) |
+| QR-5 | Brief, "Keeping examples as tests": refresh/session-persistence concerns (same source as FR-11), restated as a reliability standard. |
 
 ---
 
@@ -260,8 +283,32 @@ accounts, multi-user collaboration, and public hosting — all explicitly de-sco
 
 <!-- At least 3 issues found in the draft and how they were addressed. -->
 
-1.
-2.
-3.
+1. **Duplicate persistence requirements.** An earlier draft had two separate functional requirements
+   both covering "save programs/tests locally and survive reload" (one from the "keeping a program"
+   need, one from the "keeping examples as tests" need). This was a redundant split of the same behavior.
+   *Addressed by* merging them into a single requirement (FR-11) that covers both saved programs and
+   test collections.
+
+2. **Requirement misclassified as functional.** "The page should remain usable while work is in
+   progress" was initially written as a discrete functional requirement (a specific action the system
+   performs), but it actually describes a quality attribute — how well the system behaves under load —
+   not a distinct user-triggered behavior. *Addressed by* moving it out of Functional Requirements and
+   into Quality Requirements (QR-2), alongside the related responsiveness requirement (QR-1).
+
+3. **Uniform "Must" priority carried no signal.** The first full pass marked nearly every requirement
+   as Must, which does not satisfy the assignment's ask to separate essential needs from optional ones
+   or explain priority. *Addressed by* re-reading each requirement against the brief's own emphasis
+   (e.g., conditional language like "when that information is available," or conveniences that have a
+   working alternative) and reassigning FR-17, FR-18, and FR-19 to Should, with rationale recorded in §8.
+
+4. **"Easy to get started" has no dedicated, verifiable requirement.** The brief's phrase "easy to get
+   started, including for someone who has not used the compiler before" is exactly the kind of vague term
+   the assignment warns against, and no single requirement in this draft claims to satisfy it outright.
+   *Addressed by* not inventing an arbitrary onboarding-time metric unsupported by the brief; instead, the
+   need is approximated by a combination of existing, independently verifiable requirements — the example
+   library (FR-2), prompt responsiveness (QR-1), and straightforward local setup (§7) — and this gap is
+   recorded here rather than silently assumed closed. If the instructor has a concrete onboarding
+   expectation (e.g., a student should reach a first successful run within N minutes unaided), that would
+   resolve this as a new, additional question.
 
 ---
