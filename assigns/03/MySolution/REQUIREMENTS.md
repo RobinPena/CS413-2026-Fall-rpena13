@@ -39,11 +39,14 @@ For each open point: the question, why it matters, and either a recorded stakeho
 
 | # | Question | Why it matters | Answer / Assumption / Unresolved |
 | --- | --- | --- | --- |
-| Q1 |  |  |  |
-| Q2 |  |  |  |
-| Q3 |  |  |  |
-| Q4 |  |  |  |
-| Q5 |  |  |  |
+| Q1 | Is the example library a small fixed built-in set, or can students add/save their own entries to it? | Determines data model: examples vs. personal saved programs vs. tests may or may not be the same thing | Sent to instructor 2026-09-28 — awaiting reply |
+| Q2 | Given no user accounts, is browser local storage acceptable for "don't lose my work on refresh / return later," or is explicit file export/import required? | Local storage can be cleared by the browser; affects reliability requirement and whether export is a Must | Sent to instructor 2026-09-28 — awaiting reply |
+| Q3 | Is there an expected file extension/format for LAMBDA source files students load? | Needed to specify the file-load requirement and validate compiler interface expectations | Unresolved (not sent — see below) |
+| Q4 | In what form will the compiler return AST/generated code (structured JSON vs. plain text)? Should it get special rendering or just be shown as text? | Avoids over-scoping the UI; keeps the requirement testable | Sent to instructor 2026-09-28 — awaiting reply |
+| Q5 | Is there a fixed time threshold before a run is flagged as "taking too long," or is a manual stop button (anytime) sufficient? | "Long time" is vague; need a testable stop behavior | Sent to instructor 2026-09-28 — awaiting reply |
+| Q6 | For a test expecting a compile error, does "pass" require an exact error message match, an error category match, or just any failure? | Directly determines what "worked as expected" means for negative tests | Unresolved (not sent — see below) |
+| Q7 | How should mock/sample compiler responses be visibly marked so they're never mistaken for real results? | Explicit stakeholder concern in the brief; needs a concrete UI behavior | Sent to instructor 2026-09-28 — awaiting reply |
+| Q8 | What counts as "a browser students normally use" — a specific minimum set (e.g., current Chrome/Firefox) or broad compatibility? | Needed to make the compatibility quality requirement testable | Unresolved (not sent — see below) |
 
 ---
 
@@ -117,7 +120,7 @@ costumer wants:
     - looking for conveniency
     - should compile and stop or run
 
-USER: students in course (well-verse in tech?)
+USER: students in course
     -user interests:
         - writing LAMBDA programs
         - tinkering with compiler
