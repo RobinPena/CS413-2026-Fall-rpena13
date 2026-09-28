@@ -65,13 +65,13 @@ For each open point: the question, why it matters, and either a recorded stakeho
 
 | # | Question | Why it matters | Answer / Assumption / Unresolved |
 | --- | --- | --- | --- |
-| Q1 | Is the example library a small fixed built-in set, or can students add/save their own entries to it? | Determines data model: examples vs. personal saved programs vs. tests may or may not be the same thing | Sent to instructor 2026-09-28 — awaiting reply |
-| Q2 | Given no user accounts, is browser local storage acceptable for "don't lose my work on refresh / return later," or is explicit file export/import required? | Local storage can be cleared by the browser; affects reliability requirement and whether export is a Must | Sent to instructor 2026-09-28 — awaiting reply |
+| Q1 | Is the example library a small fixed built-in set, or can students add/save their own entries to it? | Determines data model: examples vs. personal saved programs vs. tests may or may not be the same thing | **Answered 2026-09-28:** "The example library should have 'canned' examples as well as some loaded by the students." — the library includes both built-in canned examples and student-saved entries. |
+| Q2 | Given no user accounts, is browser local storage acceptable for "don't lose my work on refresh / return later," or is explicit file export/import required? | Local storage can be cleared by the browser; affects reliability requirement and whether export is a Must | **Answered 2026-09-28:** "Yes, there should be a way for the user to export/save code into the local storage. No auto-saves, though." — saving is an explicit user action; the system must not silently auto-save. |
 | Q3 | Is there an expected file extension/format for LAMBDA source files students load? | Needed to specify the file-load requirement and validate compiler interface expectations | Assumption: source files are plain text; the environment accepts any plain-text file for loading (no extension restriction), since no file-format convention has been established by the compiler team as of this writing |
-| Q4 | In what form will the compiler return AST/generated code (structured JSON vs. plain text)? Should it get special rendering or just be shown as text? | Avoids over-scoping the UI; keeps the requirement testable | Sent to instructor 2026-09-28 — awaiting reply |
-| Q5 | Is there a fixed time threshold before a run is flagged as "taking too long," or is a manual stop button (anytime) sufficient? | "Long time" is vague; need a testable stop behavior | Sent to instructor 2026-09-28 — awaiting reply |
+| Q4 | In what form will the compiler return AST/generated code (structured JSON vs. plain text)? Should it get special rendering or just be shown as text? | Avoids over-scoping the UI; keeps the requirement testable | **Answered 2026-09-28:** "Returning text is fine." — diagnostic data (AST/generated code) is returned and shown as plain text, no structured tree rendering required. |
+| Q5 | Is there a fixed time threshold before a run is flagged as "taking too long," or is a manual stop button (anytime) sufficient? | "Long time" is vague; need a testable stop behavior | **Answered 2026-09-28:** "There should be a way to explicitly stop compilation and/or execution." — no fixed timeout; manual stop is sufficient, and it must cover both the compilation phase and the run phase. |
 | Q6 | For a test expecting a compile error, does "pass" require an exact error message match, an error category match, or just any failure? | Directly determines what "worked as expected" means for negative tests | Assumption: a negative test passes if the compiler reports any compilation error for that program; the specific message or error category is not required to match, since the brief only distinguishes "compiles" from "the compiler reject[ing] the program" |
-| Q7 | How should mock/sample compiler responses be visibly marked so they're never mistaken for real results? | Explicit stakeholder concern in the brief; needs a concrete UI behavior | Sent to instructor 2026-09-28 — awaiting reply |
+| Q7 | How should mock/sample compiler responses be visibly marked so they're never mistaken for real results? | Explicit stakeholder concern in the brief; needs a concrete UI behavior | **Answered 2026-09-28:** "Any reasonable form of marking should be fine at this stage." — no specific format mandated; any clear, visible indicator satisfies the requirement. |
 | Q8 | What counts as "a browser students normally use" — a specific minimum set (e.g., current Chrome/Firefox) or broad compatibility? | Needed to make the compatibility quality requirement testable | Assumption: the environment targets the current stable release of at least one evergreen browser (e.g. Chrome or Firefox); broad legacy-browser support is out of scope for the first version, consistent with the brief's emphasis on a small, manageable first version |
 
 ---
@@ -85,7 +85,7 @@ Ordered by priority (Must, then Should); see §8 for rationale on the Should ite
 | ID | Requirement | Priority |
 | --- | --- | --- |
 | FR-1 | The system shall let the user write a new LAMBDA program or paste one into an editor within the page. | Must |
-| FR-2 | The system shall provide a set of built-in starter example programs (e.g. a factorial example) that the user can load into the editor and modify without altering the original stored example. | Must |
+| FR-2 | The system shall provide a library of example programs that includes built-in "canned" examples (e.g. a factorial example) as well as programs the student has explicitly saved; loading a canned example into the editor and modifying it shall not alter the original stored canned example. | Must |
 | FR-3 | The system shall let the user request compilation of the current program without executing it, and report whether compilation succeeded or failed. | Must |
 | FR-4 | The system shall let the user request that the current program be compiled and run, and report the resulting value or an error. | Must |
 | FR-5 | The system shall visibly distinguish, in the displayed result, whether it came from a compile-only check or from a run. | Must |
@@ -93,14 +93,14 @@ Ordered by priority (Must, then Should); see §8 for rationale on the Should ite
 | FR-7 | When the compiler reports a source location for an error, the system shall let the user locate the corresponding position in the program source (e.g. by highlighting or navigating to it). | Must |
 | FR-8 | The system shall distinguish a failure to reach or complete a request to the compiler from an error in the user's program, and shall not present the former as if the program were at fault. | Must |
 | FR-9 | If the system cannot reach the compiler, it shall preserve the user's current program and let the user retry the request once the problem is resolved. | Must |
-| FR-10 | The system shall let the user stop a program that is running, before the compiler returns a result. | Must |
-| FR-11 | The system shall persist saved programs and named test collections locally such that they remain available after the page is reloaded or the browser is closed and reopened. | Must |
+| FR-10 | The system shall let the user explicitly stop a compilation or a run that is in progress, before the compiler returns a result. | Must |
+| FR-11 | The system shall let the user explicitly save the current program or test collection into local storage; it shall not automatically save editor content without such an explicit action. Saved items shall remain available after the page is reloaded or the browser is closed and reopened. | Must |
 | FR-12 | The system shall let the user define a named test consisting of a program and an expected outcome, where the expected outcome is either a specific value (e.g. an integer or Boolean) or an expectation that compilation fails. | Must |
 | FR-13 | The system shall let the user organize named tests into a named collection and run all tests in a collection in one action. | Must |
 | FR-14 | After running a test collection, the system shall display a summary of how many tests matched their expected outcome, and shall let the user inspect the detail of any test that did not, without a failing test preventing the rest of the collection from running. | Must |
 | FR-15 | The system shall obtain compilation and execution results through a defined interface that can be backed by either mock/sample responses or a real compiler, without requiring changes to the rest of the system when switched. | Must |
 | FR-16 | When a result was produced by a mock/sample compiler response rather than a real compiler, the system shall visibly indicate this so it is not mistaken for an actual compilation or run result. | Must |
-| FR-17 | The system shall let the user optionally view compiler-produced diagnostic information (such as an abstract syntax tree or generated code) when the compiler makes it available, without showing this information by default. | Should |
+| FR-17 | The system shall let the user optionally view compiler-produced diagnostic information (such as an abstract syntax tree or generated code), returned and displayed as plain text, when the compiler makes it available, without showing this information by default. | Should |
 | FR-18 | If the user edits and re-submits a program while a previous request for that program is still in progress, the system shall indicate which program version a displayed result corresponds to. | Should |
 | FR-19 | The system shall let the user load a LAMBDA program from a local file into the editor. | Should |
 
@@ -128,8 +128,8 @@ Ordered by priority (Must, then Should).
   request/response interface, not by embedding compiler logic itself. A request carries the program
   source and the requested action (compile-only or run); a response carries either a success result
   (a value, or confirmation of successful compilation) or an error (with a source location when the
-  compiler provides one), and may optionally include diagnostic data such as an AST or generated code
-  (FR-17). The source notation the compiler expects is still being decided by the compiler team at time
+  compiler provides one), and may optionally include diagnostic data such as an AST or generated code,
+  returned as plain text (FR-17, per stakeholder answer to Q4). The source notation the compiler expects is still being decided by the compiler team at time
   of writing, so the interface treats program text as an opaque string rather than assuming a specific
   syntax. This interface is initially backed by mock/sample responses and is intended to be backed by the
   real compiler later without requiring the rest of the system to be redesigned (FR-15), with mock output
@@ -218,9 +218,10 @@ accounts, multi-user collaboration, and public hosting — all explicitly de-sco
 ### AC-6 (for FR-10 — failure/exceptional scenario: non-terminating program)
 
 - **Given:** the editor contains a recursive program that does not terminate.
-- **When:** the user starts a run, then invokes stop before any result is returned.
+- **When:** the user starts a run, then explicitly invokes stop before any result is returned.
 - **Then:** the run halts, no result is presented as if it had completed, and the editor and controls
-  remain usable immediately afterward.
+  remain usable immediately afterward. (The same stop control is available and behaves equivalently if
+  invoked during compilation rather than during execution.)
 
 ### AC-7 (for FR-13, FR-14 — exceptional scenario: one failing test in a collection)
 
