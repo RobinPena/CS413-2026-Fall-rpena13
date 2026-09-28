@@ -124,7 +124,30 @@ Ordered by priority (Must, then Should).
 
 ## 7. External Interfaces & Dependencies
 
-<!-- Compiler interface, file system/local storage, browser, sample/mock responses during compiler development. -->
+- **Compiler interface.** The environment communicates with a LAMBDA compiler through a defined
+  request/response interface, not by embedding compiler logic itself. A request carries the program
+  source and the requested action (compile-only or run); a response carries either a success result
+  (a value, or confirmation of successful compilation) or an error (with a source location when the
+  compiler provides one), and may optionally include diagnostic data such as an AST or generated code
+  (FR-17). The source notation the compiler expects is still being decided by the compiler team at time
+  of writing, so the interface treats program text as an opaque string rather than assuming a specific
+  syntax. This interface is initially backed by mock/sample responses and is intended to be backed by the
+  real compiler later without requiring the rest of the system to be redesigned (FR-15), with mock output
+  visibly labeled as such (FR-16). Coordinating the exact interface contract with the compiler team is
+  necessary before implementation and is called out as an open dependency, not resolved by this
+  specification.
+- **Local persistence.** Saved programs and named test collections are stored locally on the user's own
+  machine (e.g. browser storage) rather than on a server or shared database, consistent with there being
+  no user accounts in the first version (FR-11).
+- **Local file system.** Loading a program from a file (FR-19) reads a local file the user selects; no
+  requirement is placed on writing back to that same file or on a specific file extension (§4, Q3 —
+  assumption: plain text, any extension).
+- **Browser.** The environment runs inside a standard web browser on the user's own machine, without
+  browser extensions or plugins, and without a hosted/public deployment (§3.2). Per §4 Q8, it targets a
+  current evergreen browser (e.g. Chrome or Firefox) rather than broad legacy support.
+- **Local setup.** The environment and its (mock or real) compiler backend run locally on a student's or
+  instructor's computer; installation is expected to be simple enough for someone else to follow written
+  setup instructions, per the instructor's stated goal of a straightforward setup.
 
 ---
 
@@ -158,11 +181,69 @@ accounts, multi-user collaboration, and public hosting — all explicitly de-sco
 
 <!-- At least 6 requirements, at least 2 failure/exceptional scenarios. -->
 
-### AC-1 (for FR-?)
+### AC-1 (for FR-3 — compile-only)
 
-- **Given:**
-- **When:**
-- **Then:**
+- **Given:** the editor contains a syntactically valid LAMBDA program.
+- **When:** the user requests compilation without running.
+- **Then:** the system reports that compilation succeeded, and does not display a run result or value.
+
+### AC-2 (for FR-4 — run)
+
+- **Given:** the editor contains the built-in factorial example, unmodified.
+- **When:** the user requests that the program be compiled and run.
+- **Then:** the system displays the correct computed value for that example.
+
+### AC-3 (for FR-6 — failure scenario: compile-time vs. runtime error)
+
+- **Given:** the editor contains a program with a syntax error.
+- **When:** the user requests a run.
+- **Then:** the system reports a compilation error, using presentation and wording distinct from a
+  runtime failure — it does not claim the program ran and failed.
+
+### AC-4 (for FR-7 — error location mapping)
+
+- **Given:** the editor contains a program with an error the compiler reports at a specific line/position.
+- **When:** the user requests compilation and the error is returned.
+- **Then:** the user can navigate to or see highlighted the corresponding position in the source editor.
+
+### AC-5 (for FR-8, FR-9 — failure scenario: compiler unreachable)
+
+- **Given:** the editor contains a valid program, and the compiler backend is unreachable (e.g. not
+  running).
+- **When:** the user requests a run.
+- **Then:** the system reports an environment/connection failure distinct from a program error, keeps
+  the program text intact, and lets the user retry the same request once the backend becomes reachable,
+  at which point the retry succeeds.
+
+### AC-6 (for FR-10 — failure/exceptional scenario: non-terminating program)
+
+- **Given:** the editor contains a recursive program that does not terminate.
+- **When:** the user starts a run, then invokes stop before any result is returned.
+- **Then:** the run halts, no result is presented as if it had completed, and the editor and controls
+  remain usable immediately afterward.
+
+### AC-7 (for FR-13, FR-14 — exceptional scenario: one failing test in a collection)
+
+- **Given:** a named test collection containing three tests, one of which is deliberately written to
+  fail (e.g. wrong expected value).
+- **When:** the user runs the collection.
+- **Then:** the summary reports 2 passed / 1 failed, the failing test's detail is available for
+  inspection, and the two passing tests show their results normally (the failing test does not block or
+  hide them).
+
+### AC-8 (for FR-16 — mock response labeling)
+
+- **Given:** the environment is configured to use mock/sample compiler responses (no real compiler
+  connected).
+- **When:** the user runs any program.
+- **Then:** the displayed result is visibly labeled as coming from a mock/sample response, distinguishable
+  at a glance from a real compiler result.
+
+### AC-9 (for FR-11 — persistence across reload)
+
+- **Given:** the user has saved a program under a name.
+- **When:** the page is reloaded (or the browser is closed and reopened).
+- **Then:** the saved program is still present and can be reopened with its content intact.
 
 ---
 
