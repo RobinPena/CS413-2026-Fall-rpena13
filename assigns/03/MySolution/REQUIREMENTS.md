@@ -80,9 +80,29 @@ For each open point: the question, why it matters, and either a recorded stakeho
 
 <!-- FR-<n>, one behavior per requirement, testable, "the system shall ..." -->
 
+Ordered by priority (Must, then Should); see §8 for rationale on the Should items.
+
 | ID | Requirement | Priority |
 | --- | --- | --- |
-| FR-1 |  | Must |
+| FR-1 | The system shall let the user write a new LAMBDA program or paste one into an editor within the page. | Must |
+| FR-2 | The system shall provide a set of built-in starter example programs (e.g. a factorial example) that the user can load into the editor and modify without altering the original stored example. | Must |
+| FR-3 | The system shall let the user request compilation of the current program without executing it, and report whether compilation succeeded or failed. | Must |
+| FR-4 | The system shall let the user request that the current program be compiled and run, and report the resulting value or an error. | Must |
+| FR-5 | The system shall visibly distinguish, in the displayed result, whether it came from a compile-only check or from a run. | Must |
+| FR-6 | The system shall visibly distinguish a compilation error from a runtime failure, using different presentation and wording for each. | Must |
+| FR-7 | When the compiler reports a source location for an error, the system shall let the user locate the corresponding position in the program source (e.g. by highlighting or navigating to it). | Must |
+| FR-8 | The system shall distinguish a failure to reach or complete a request to the compiler from an error in the user's program, and shall not present the former as if the program were at fault. | Must |
+| FR-9 | If the system cannot reach the compiler, it shall preserve the user's current program and let the user retry the request once the problem is resolved. | Must |
+| FR-10 | The system shall let the user stop a program that is running, before the compiler returns a result. | Must |
+| FR-11 | The system shall persist saved programs and named test collections locally such that they remain available after the page is reloaded or the browser is closed and reopened. | Must |
+| FR-12 | The system shall let the user define a named test consisting of a program and an expected outcome, where the expected outcome is either a specific value (e.g. an integer or Boolean) or an expectation that compilation fails. | Must |
+| FR-13 | The system shall let the user organize named tests into a named collection and run all tests in a collection in one action. | Must |
+| FR-14 | After running a test collection, the system shall display a summary of how many tests matched their expected outcome, and shall let the user inspect the detail of any test that did not, without a failing test preventing the rest of the collection from running. | Must |
+| FR-15 | The system shall obtain compilation and execution results through a defined interface that can be backed by either mock/sample responses or a real compiler, without requiring changes to the rest of the system when switched. | Must |
+| FR-16 | When a result was produced by a mock/sample compiler response rather than a real compiler, the system shall visibly indicate this so it is not mistaken for an actual compilation or run result. | Must |
+| FR-17 | The system shall let the user optionally view compiler-produced diagnostic information (such as an abstract syntax tree or generated code) when the compiler makes it available, without showing this information by default. | Should |
+| FR-18 | If the user edits and re-submits a program while a previous request for that program is still in progress, the system shall indicate which program version a displayed result corresponds to. | Should |
+| FR-19 | The system shall let the user load a LAMBDA program from a local file into the editor. | Should |
 
 ---
 
@@ -90,9 +110,15 @@ For each open point: the question, why it matters, and either a recorded stakeho
 
 <!-- QR-<n>: usability, reliability, responsiveness, etc. Define how satisfaction is assessed. -->
 
-| ID | Requirement | Priority |
-| --- | --- | --- |
-| QR-1 |  | Must |
+Ordered by priority (Must, then Should).
+
+| ID | Requirement | How satisfaction is assessed | Priority |
+| --- | --- | --- | --- |
+| QR-1 | The system shall respond to ordinary user actions (opening the page, switching examples, editing text, starting a compile/run/stop) without waiting on the compiler. *Proposal: visible feedback within 1 second under normal local operation, independent of compiler latency.* | Time the interval between the user action and visible UI feedback (e.g. a busy indicator or updated state) across the listed actions. | Must |
+| QR-2 | While a compile or run request is in progress, the system shall keep the editor and other main controls usable (editing, starting a new action, requesting stop) rather than freezing. | With a request in flight, attempt to edit the program and to trigger stop; confirm both are accepted rather than blocked. | Must |
+| QR-3 | The system's primary tasks (writing, compiling, running, saving/loading, and managing tests) shall be operable using only the keyboard, and status/error messages shall be distinguishable without relying on color alone. | Perform each primary task using only the keyboard; render the interface without color (e.g. grayscale) and confirm success/error states remain distinguishable. | Must |
+| QR-4 | A single failing or erroring test within a collection shall not prevent the remaining tests in that collection from running and reporting a result. | Build a collection containing one deliberately broken test among several valid ones; run the collection; confirm the others still execute and report. | Should |
+| QR-5 | Saved programs and test collections shall survive a page reload and a full browser restart without data loss, under normal operation (no manual clearing of browser storage). | Save a program/collection, reload the page, then fully restart the browser; confirm the content is intact both times. | Should |
 
 ---
 
@@ -104,7 +130,27 @@ For each open point: the question, why it matters, and either a recorded stakeho
 
 ## 8. Priorities & Rationale
 
-<!-- Must / Should / Could, and why. What waits until later versions. -->
+**Must** requirements form the essential loop the brief describes as non-negotiable: edit → compile/run →
+understand the result → save it as a repeatable test, plus the failure-handling and mock/real compiler
+concerns the instructor raised explicitly (FR-8, FR-9, FR-16). Dropping any of these would leave the
+tool unable to replace the current direct-tool-use workflow, which is its stated purpose.
+
+**Should** requirements are valuable but not load-bearing for that core loop:
+
+- **FR-17** (AST/generated-code inspection) — the brief frames this as conditional ("when that information
+  is available") and explicitly says it should not get in the way of simple use. It can be added once the
+  compiler exposes this data without blocking the first version.
+- **FR-18** (tracking which program version produced a displayed result) — only matters when a user edits
+  and resubmits before a prior request finishes; a real but narrower edge case than the main flow.
+- **FR-19** (loading a program from a local file) — pasting into the editor (FR-1) already satisfies the
+  core need; file loading removes retyping friction but is not required to use the system.
+
+**Quality requirements QR-4 and QR-5** are marked Should for a similar reason: they harden behavior
+(fault isolation in a test run, persistence surviving a full browser restart) that matters for trust in
+the tool over time, but the system is still usable for a single session without them.
+
+Deferred beyond the first version entirely (see §3.2): sharing test collections across the class, user
+accounts, multi-user collaboration, and public hosting — all explicitly de-scoped by the instructor.
 
 ---
 
