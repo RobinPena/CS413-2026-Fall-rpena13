@@ -21,15 +21,37 @@ Status: **DRAFT — work in progress**
 
 ### 3.1 In scope (first version)
 
-<!-- bullets -->
+- Write/paste and edit LAMBDA programs in-browser
+- Built-in starter examples (e.g. factorial) that can be modified without altering the original
+- "Compile only" and "run" as distinct, separately invocable actions
+- Display of results: computed answer, or error
+- Optional inspection of AST / generated code, hidden by default so it does not clutter simple runs
+- Distinguishing compile-time errors from runtime failures, visually and in wording
+- Mapping a compiler-reported error location back to the source (e.g. highlight/jump to line)
+- Distinguishing an environment/connection failure from a problem in the student's program; work is preserved and retry is possible
+- Stopping a long-running or non-terminating program; the page remains responsive meanwhile
+- Tracking which program version produced a given displayed result, if the program is edited mid-run
+- Loading a program from a local file (no retyping)
+- Saving a program locally and resuming it in a later session, surviving a page refresh
+- Named test collections: a program paired with an expected outcome (a value, or "should fail to compile")
+- Running a whole test collection; a pass/fail summary; one failing test does not block the rest
+- Keyboard-operable main tasks; status/error messages that do not rely on color alone
+- Running locally on a student's or instructor's machine; no server deployment required
+- Building the interface against mock/sample compiler responses now, with the real compiler pluggable in later without redesign
 
 ### 3.2 Out of scope (first version)
 
-<!-- bullets -->
+- Public hosting / a deployed website
+- User accounts or authentication
+- Multi-user real-time collaborative editing
+- Sharing test collections across the class (stakeholder: "could live without that in the first version")
+- The compiler itself — its implementation is a separate project; the environment only consumes its interface
+- Advanced visual polish or features found in a full development environment
 
 ### 3.3 System boundary: testing environment vs. compiler
 
-<!-- Explicitly separate what the UI/environment owns vs. what belongs to the compiler team. -->
+- **Environment owns:** editor UI, example library, compile/run invocation, result and error display, test collection management, local persistence, execution control (stop), and a swappable compiler interface (mock now, real later).
+- **Compiler owns:** parsing, compiling, and executing LAMBDA source; producing the AST, generated code, results, and error information; defining the source notation (still unsettled at time of writing). Treated as an external, evolving dependency the environment integrates against rather than embeds.
 
 ---
 
@@ -111,24 +133,3 @@ For each open point: the question, why it matters, and either a recorded stakeho
 3.
 
 ---
-
-## Appendix: Working Notes (raw, pre-draft)
-
-costumer wants:
-    - web based env to try out lambda comp:
-    - work directly with language tools
-    - looking for conveniency
-    - should compile and stop or run
-
-USER: students in course
-    -user interests:
-        - writing LAMBDA programs
-        - tinkering with compiler
-        - to be used in lectures
-
-
-Question/Clarification
--------
-    - having examples: saved as files? tabs? commented functions? copy/paste list of examples?
-    - modify an example without losing acess: history saved locally? cloud? user-account?
-    - easy to get started: define "easy"
