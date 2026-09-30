@@ -1,6 +1,6 @@
 # LAMBDA Web Testing Environment — Requirements Specification
 
-**Dev:** Robin Pena, with Claude (Sonnet, Opus) — see `AI-TRANSCRIPT.md`
+**Devs:** Robin Pena, Claude (Sonnet, Opus) — see `AI-TRANSCRIPT.md`
 
 **Course:** CS413 · **Assignment:** #3 · **Due:** 2026-09-29
 
