@@ -1,10 +1,12 @@
 # LAMBDA Web Testing Environment — Requirements Specification
 
-**Dev: Robin Pena , Claude(Sonnet,Opus)(they deserve credit too :)**
+**Dev:** Robin Pena, with Claude (Sonnet, Opus) — see `AI-TRANSCRIPT.md`
 
-**At a glance:** 19 functional requirements (16 Must, 3 Should) · 6 quality requirements (4 Must,
+**Course:** CS413 · **Assignment:** #3 · **Due:** 2026-09-29
+
+**At a glance:** 19 functional requirements (16 Must, 3 Should) · 7 quality requirements (5 Must,
 2 Should) · 9 acceptance criteria (4 of them failure scenarios) · 9 clarification questions
-(5 answered, 3 resolved by assumption, 1 open).
+(6 answered by the stakeholder, 3 resolved by explicit assumption).
 
 | Section | Contents |
 | --- | --- |
@@ -113,21 +115,20 @@ rather than embeds.
 
 ## 4. Clarification Questions & Assumptions
 
-Each open point records the question, why it matters, and one of: a recorded stakeholder answer, an
-explicit assumption, or an unresolved status. Invented answers are never presented as stakeholder
-decisions.
+Each question records why it matters and how it was resolved: either a recorded stakeholder answer, or
+an explicit assumption where no answer was sought.
 
 | # | Question | Why it matters | Resolution |
 | --- | --- | --- | --- |
-| **Q1** | Is the example library a small fixed built-in set, or can students add and save their own entries? | Determines the data model — examples, personal saved programs, and tests may or may not be the same thing | ✅ **Answered 2026-09-28:** *"The example library should have 'canned' examples as well as some loaded by the students."* The library holds both. |
-| **Q2** | With no user accounts, is browser local storage acceptable for "don't lose my work," or is explicit file export/import required? | Local storage can be cleared by the browser, affecting the reliability requirement and whether export is a Must | ✅ **Answered 2026-09-28:** *"Yes, there should be a way for the user to export/save code into the local storage. No auto-saves, though."* Saving is an explicit user action. |
-| **Q3** | Is there an expected file extension or format for LAMBDA source files? | Needed to specify the file-load requirement and check compiler interface expectations | 📌 **Assumption:** source files are plain text. The environment accepts any plain-text file, with no extension restriction, since the compiler team has not established a convention. |
-| **Q4** | In what form does the compiler return AST and generated code, and should it get special rendering? | Avoids over-scoping the UI and keeps the requirement testable | ✅ **Answered 2026-09-28:** *"Returning text is fine."* Diagnostics are returned and displayed as plain text; no tree rendering required. |
-| **Q5** | Is there a fixed "taking too long" threshold, or is a manual stop sufficient? | "Long time" is not verifiable as written; a testable stop behavior is needed | ✅ **Answered 2026-09-28:** *"There should be a way to explicitly stop compilation and/or execution."* No timeout; manual stop covering both phases. |
-| **Q6** | For a test expecting a compile error, does passing require an exact message match, a category match, or any failure? | Determines what "worked as expected" means for negative tests | 📌 **Assumption:** a negative test passes if the compiler reports any compilation error. The brief only distinguishes "compiles" from "the compiler reject[ing] the program." |
-| **Q7** | How should mock responses be marked so they are never mistaken for real results? | An explicit stakeholder concern that needs concrete UI behavior | ✅ **Answered 2026-09-28:** *"Any reasonable form of marking should be fine at this stage."* No specific format mandated. |
-| **Q8** | What counts as "a browser students normally use"? | Needed to make the compatibility requirement testable | 📌 **Assumption:** the current stable release of at least one evergreen browser (e.g. Chrome or Firefox). Legacy support is out of scope for v1. |
-| **Q9** | Is there a concrete target behind "easy to get started" — for example, a new student reaching a first successful run within a set number of minutes unaided — or is it meant qualitatively? | "Easy" is unverifiable as written. The answer decides whether onboarding needs its own measurable acceptance check or stays a qualitative design goal | ⏳ **Open** — drafted 2026-09-28, not yet sent. See Review Note 4. |
+| **Q1** | Is the example library a small fixed built-in set, or can students add and save their own entries? | Determines the data model — examples, personal saved programs, and tests may or may not be the same thing | **Answered 2026-09-28:** *"The example library should have 'canned' examples as well as some loaded by the students."* The library holds both. |
+| **Q2** | With no user accounts, is browser local storage acceptable for "don't lose my work," or is explicit file export/import required? | Local storage can be cleared by the browser, affecting the reliability requirement and whether export is a Must | **Answered 2026-09-28:** *"Yes, there should be a way for the user to export/save code into the local storage. No auto-saves, though."* Saving is an explicit user action. |
+| **Q3** | Is there an expected file extension or format for LAMBDA source files? | Needed to specify the file-load requirement and check compiler interface expectations | **Assumption:** source files are plain text. The environment accepts any plain-text file, with no extension restriction, since the compiler team has not established a convention. |
+| **Q4** | In what form does the compiler return AST and generated code, and should it get special rendering? | Avoids over-scoping the UI and keeps the requirement testable | **Answered 2026-09-28:** *"Returning text is fine."* Diagnostics are returned and displayed as plain text; no tree rendering required. |
+| **Q5** | Is there a fixed "taking too long" threshold, or is a manual stop sufficient? | "Long time" is not verifiable as written; a testable stop behavior is needed | **Answered 2026-09-28:** *"There should be a way to explicitly stop compilation and/or execution."* No timeout; manual stop covering both phases. |
+| **Q6** | For a test expecting a compile error, does passing require an exact message match, a category match, or any failure? | Determines what "worked as expected" means for negative tests | **Assumption:** a negative test passes if the compiler reports any compilation error. The brief only distinguishes "compiles" from "the compiler reject[ing] the program." |
+| **Q7** | How should mock responses be marked so they are never mistaken for real results? | An explicit stakeholder concern that needs concrete UI behavior | **Answered 2026-09-28:** *"Any reasonable form of marking should be fine at this stage."* No specific format mandated. |
+| **Q8** | What counts as "a browser students normally use"? | Needed to make the compatibility requirement testable | **Assumption:** the current stable release of at least one evergreen browser (e.g. Chrome or Firefox). Legacy support is out of scope for v1. |
+| **Q9** | Is there a concrete target behind "easy to get started" — for example, a new student reaching a first successful run within a set number of minutes unaided — or is it meant qualitatively? | "Easy" is unverifiable as written. The answer decides whether onboarding needs its own measurable acceptance check or stays a qualitative design goal | **Answered 2026-09-29:** *"Just need to identify that this is a non-functional requirement."* No numeric target is wanted. Captured as **QR-7**. |
 
 ---
 
@@ -159,10 +160,11 @@ Ordered by priority: Must first, then Should. See §8 for the rationale behind e
 
 ---
 
-## 6. Quality Requirements
+## 6. Quality Requirements (Non-Functional)
 
 Each quality requirement states one property and how that property would be checked, so that no
-requirement rests on an unmeasurable term such as "fast" or "easy."
+requirement rests on an unmeasurable term such as "fast" or "easy." Each states a property that can
+pass or fail independently of the others.
 
 | ID | Requirement | How satisfaction is assessed | Priority |
 | --- | --- | --- | --- |
@@ -172,6 +174,7 @@ requirement rests on an unmeasurable term such as "fast" or "easy."
 | **QR-4** | Status and error messages shall remain distinguishable without relying on color alone. | Render the interface without color, for example in grayscale, and confirm success, error, and in-progress states are still tellable apart. | Must |
 | **QR-5** | A single failing or erroring test within a collection shall not prevent the remaining tests in that collection from running and reporting a result. | Build a collection containing one deliberately broken test among several valid ones, run it, and confirm the others still execute and report. | Should |
 | **QR-6** | Saved programs and test collections shall survive a page reload and a full browser restart without data loss, under normal operation with no manual clearing of browser storage. | Save a program and a collection, reload the page, then fully restart the browser; confirm the content is intact after each. | Should |
+| **QR-7** | A newcomer who has not used the LAMBDA compiler before shall be able to reach a first successful run using only the built-in examples and the controls visible on the page, without editing configuration or consulting compiler documentation. *The stakeholder confirmed this is a non-functional requirement and declined to set a numeric onboarding target (Q9), so none is proposed here.* | Observe a first-time user, given no verbal guidance, open the page, load a built-in example, and run it; record whether they succeed using on-screen affordances alone and where they get stuck. | Must |
 
 ---
 
@@ -214,7 +217,9 @@ instructor's stated goal.
 **Must** requirements form the loop the brief treats as essential: edit → compile or run → understand
 the result → keep it as a repeatable test. They also cover the failure-handling and mock/real compiler
 concerns the instructor raised directly (FR-8, FR-9, FR-16). Dropping any of them would leave the tool
-unable to replace the current direct-tool-use workflow, which is its stated purpose.
+unable to replace the current direct-tool-use workflow, which is its stated purpose. QR-7 is also a
+Must: a tool the instructor cannot hand to a newcomer mid-lecture fails one of the brief's opening
+goals, however well the rest of it works.
 
 **Should** requirements are valuable but not load-bearing for that loop:
 
@@ -235,8 +240,8 @@ accounts, multi-user collaboration, and public hosting — all explicitly de-sco
 
 ## 9. Acceptance Criteria
 
-Nine checks covering eleven requirements. Four are failure or exceptional scenarios (AC-3, AC-5, AC-6,
-AC-7). These specify future checks; none report results from an implemented system.
+Nine checks covering eleven requirements. Four are failure or exceptional scenarios: AC-3, AC-5, AC-6,
+and AC-7.
 
 ### AC-1 — compile-only (FR-3)
 
@@ -307,7 +312,7 @@ AC-7). These specify future checks; none report results from an implemented syst
 ## 10. Traceability
 
 Every requirement traces to a passage of the stakeholder brief, a recorded answer from §4, or an
-explicit assumption. Requirements with more than one source list both.
+explicit assumption.
 
 | ID | Source |
 | --- | --- |
@@ -336,6 +341,7 @@ explicit assumption. Requirements with more than one source list both.
 | **QR-4** | Brief, *Keeping the project manageable*: "messages should make sense without depending only on colors." |
 | **QR-5** | Brief, *Keeping examples as tests*: "One troublesome test should not make the rest of the collection useless." |
 | **QR-6** | Brief, *Keeping examples as tests*: refresh and return-later concerns, stated as a durability standard. Reinforced by the **Q2 answer**. |
+| **QR-7** | Brief, opening section: "It should be easy to get started, including for someone who has not used the compiler before." Classified as non-functional, with no numeric target, per the **Q9 answer**. |
 
 ---
 
@@ -358,13 +364,13 @@ each requirement against the brief's own emphasis — conditional phrasing such 
 information is available," or conveniences with a working alternative — and reassigning FR-17, FR-18,
 FR-19, QR-5, and QR-6 to Should, with the reasoning recorded in §8.
 
-**4. "Easy to get started" has no verifiable requirement.** The brief's "easy to get started,
-including for someone who has not used the compiler before" is exactly the kind of unmeasurable phrase
-this specification avoids, and no single requirement claims to satisfy it. *Resolved by* declining to
-invent an onboarding metric the brief does not support. The need is instead approximated by
-requirements that are independently checkable — the example library (FR-2), responsiveness (QR-1), and
-straightforward local setup (§7) — and the gap is raised with the stakeholder as **Q9** rather than
-quietly assumed closed.
+**4. "Easy to get started" was captured nowhere.** The brief's "easy to get started, including for
+someone who has not used the compiler before" is exactly the kind of unmeasurable phrase this
+specification avoids, and an earlier draft left it covered only indirectly by the example library
+(FR-2), responsiveness (QR-1), and setup notes (§7). Rather than invent an onboarding metric the brief
+did not support, the gap was raised with the stakeholder as **Q9**. *Resolved by* their answer — "just
+need to identify that this is a non-functional requirement" — which is now recorded as **QR-7**, with
+an observational check and an explicit note that no numeric target was wanted.
 
 **5. The same guarantee stated in two places.** Fault isolation appeared in both FR-14 and the
 test-run quality requirement, and durable persistence in both FR-11 and the persistence quality
