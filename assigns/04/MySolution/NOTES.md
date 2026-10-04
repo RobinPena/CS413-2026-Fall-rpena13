@@ -39,10 +39,16 @@ Short running log of progress. Details live in the code, docs, and `AI-TRANSCRIP
 - Operator names checked only as non-empty strings; unknown ops left to the interpreter
 - Indented/pasted input accepted (source parenthesized before parsing)
 
+**Task 4 — contract:**
+- `backend/contract.py`: `Operation`, `Outcome` (ok / input / language / backend failure / not implemented), frozen `Result`, `Artifact`, `LanguageBackend` Protocol
+- Results tagged with revision; failures returned as Results, not exceptions
+- Timeout classified as backend failure; undeclared vars + runtime errors as language errors
+
 ## Next
 
 **To do:**
 - [x] Install Python 3.12+ (have 3.14.8)
 - [x] Task 2: venv, `requirements.txt`, copy `lambda1.py`, minimal app on 127.0.0.1
 - [x] Task 3: restricted constructor reader (`backend/reader.py`)
-- [ ] Task 4: result contract (`backend/contract.py`)
+- [x] Task 4: result contract (`backend/contract.py`)
+- [ ] Task 5: real Lint + Interpret (`backend/lambda_backend.py`)
