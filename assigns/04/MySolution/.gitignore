@@ -1,0 +1,11 @@
+# virtual environments
+.venv/
+venv/
+
+# test and tool caches
+.pytest_cache/
+.coverage
+htmlcov/
+
+# local env/secrets
+.env
