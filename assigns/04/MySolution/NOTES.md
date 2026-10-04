@@ -58,6 +58,12 @@ Short running log of progress. Details live in the code, docs, and `AI-TRANSCRIP
 - `TESTING.md` started with coverage table mapped to spec tests/F-IDs
 - Result: 102 passed (~4 s); deliberate break of pair `D0V000` check caught by `error-inside-pair` test
 
+**Task 7 — model state:**
+- `model/session.py`: `Session` (load, open_manual, edit, apply, discard, record, snapshot), frozen `Source`/`Snapshot`, `StateError`
+- Revisions only increase; new revision clears results + artifact; stale results ignored
+- Draft blocks source replacement; one lock per session; model imports only stdlib + contract
+- Tests: `tests/test_model.py` (119 passed total); deliberate breaks (load ignoring draft, model importing flask) each caught
+
 ## Next
 
 **To do:**
@@ -67,4 +73,5 @@ Short running log of progress. Details live in the code, docs, and `AI-TRANSCRIP
 - [x] Task 4: result contract (`backend/contract.py`)
 - [x] Task 5: real Lint + Interpret (`backend/lambda_backend.py`)
 - [x] Task 6: placeholders (Type-check/Compile/Execute) + interpret timeout
-- [ ] Task 7: model — source state, revisions, apply/discard (`model/session.py`)
+- [x] Task 7: model — source state, revisions, apply/discard (`model/session.py`)
+- [ ] Task 8: model validation (empty/UTF-8/64 KiB) + busy state + action gating
