@@ -64,6 +64,13 @@ Short running log of progress. Details live in the code, docs, and `AI-TRANSCRIP
 - Draft blocks source replacement; one lock per session; model imports only stdlib + contract
 - Tests: `tests/test_model.py` (119 passed total); deliberate breaks (load ignoring draft, model importing flask) each caught
 
+**Task 8 — model rules:**
+- Validation: empty/whitespace, 64 KiB (bytes), UTF-8 uploads (BOM dropped); rejected drafts kept for correction
+- Busy: `begin` → `Job`, `finish(result, artifact)`, `fail(message)`; busy blocks all changes; replaces `record`
+- Gating: per-action enabled + reason in `Snapshot`; Execute needs artifact for current revision
+- Tests: `tests/test_model_rules.py` (146 passed total); break (edit ignoring busy) caught
+- Found: simultaneous-click test couldn't detect a missing lock (0/200); fixed by widening the check→busy gap in the test, now catches it every time
+
 ## Next
 
 **To do:**
@@ -74,4 +81,5 @@ Short running log of progress. Details live in the code, docs, and `AI-TRANSCRIP
 - [x] Task 5: real Lint + Interpret (`backend/lambda_backend.py`)
 - [x] Task 6: placeholders (Type-check/Compile/Execute) + interpret timeout
 - [x] Task 7: model — source state, revisions, apply/discard (`model/session.py`)
-- [ ] Task 8: model validation (empty/UTF-8/64 KiB) + busy state + action gating
+- [x] Task 8: model validation (empty/UTF-8/64 KiB) + busy state + action gating
+- [ ] Task 9: controller source routes (upload, manual, canned, edit, apply, discard)

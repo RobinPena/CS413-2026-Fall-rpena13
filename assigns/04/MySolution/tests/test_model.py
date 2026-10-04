@@ -13,8 +13,11 @@ from lambda_web.model import MANUAL_NAME, Origin, Session, StateError
 from tests.programs import ADD_42, fact
 
 
-def result_for(revision: int) -> Result:
-    return Result(Operation.LINT, revision, Outcome.OK, "ok")
+def run(s: Session, op: Operation = Operation.LINT) -> Result:
+    job = s.begin(op)
+    result = Result(op, job.revision, Outcome.OK, "ok")
+    s.finish(result)
+    return result
 
 
 # --- loading --------------------------------------------------------
@@ -107,8 +110,8 @@ def test_apply_or_discard_without_draft_is_rejected(action):
 def test_result_for_current_revision_is_recorded():
     s = Session()
     s.load("Factorial", fact(5), Origin.CANNED)
-    assert s.record(result_for(1))
-    assert s.snapshot().results == (result_for(1),)
+    result = run(s)
+    assert s.snapshot().results == (result,)
 
 
 @pytest.mark.parametrize("change", [
@@ -118,7 +121,7 @@ def test_result_for_current_revision_is_recorded():
 def test_new_revision_clears_results(change):
     s = Session()
     s.load("Factorial", fact(5), Origin.CANNED)
-    s.record(result_for(1))
+    run(s)
     change(s)
     assert s.snapshot().results == ()
 
@@ -126,9 +129,10 @@ def test_new_revision_clears_results(change):
 def test_stale_result_is_ignored():
     s = Session()
     s.load("Factorial", fact(5), Origin.CANNED)
-    s.load("other", ADD_42, Origin.UPLOAD)
-    assert not s.record(result_for(1))
-    assert s.snapshot().results == ()
+    s.begin(Operation.LINT)
+    assert not s.finish(Result(Operation.LINT, 0, Outcome.OK, "old"))
+    snap = s.snapshot()
+    assert snap.results == () and snap.busy is None
 
 
 def test_snapshot_is_read_only():
