@@ -30,12 +30,19 @@ Short running log of progress. Details live in the code, docs, and `AI-TRANSCRIP
 - venv on Python 3.14.8; pinned flask 3.1.3, pytest 9.1.1
 - `lambda1.py` copied unchanged into `lambda_web/backend/`
 - App factory `create_app()`; placeholder `/` route in controller blueprint
-- `run.py` binds 127.0.0.1:5050 (5000 clashes with macOS AirPlay)
+- `run.py` binds 127.0.0.1:5000 (AirPlay Receiver disabled; use 127.0.0.1, not localhost)
 - Smoke tests pass
+
+**Task 3 — reader:**
+- `backend/reader.py`: `ast`-walked, whitelist of 13 `D0E*` constructors, per-argument kind checks
+- Never eval/exec; rejects imports, attributes, keywords, wrong arity/types, deep nesting
+- Operator names checked only as non-empty strings; unknown ops left to the interpreter
+- Indented/pasted input accepted (source parenthesized before parsing)
 
 ## Next
 
 **To do:**
 - [x] Install Python 3.12+ (have 3.14.8)
 - [x] Task 2: venv, `requirements.txt`, copy `lambda1.py`, minimal app on 127.0.0.1
-- [ ] Task 3: restricted constructor reader (`backend/reader.py`)
+- [x] Task 3: restricted constructor reader (`backend/reader.py`)
+- [ ] Task 4: result contract (`backend/contract.py`)
