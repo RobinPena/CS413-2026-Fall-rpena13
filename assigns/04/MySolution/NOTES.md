@@ -44,6 +44,10 @@ Short running log of progress. Details live in the code, docs, and `AI-TRANSCRIP
 - Results tagged with revision; failures returned as Results, not exceptions
 - Timeout classified as backend failure; undeclared vars + runtime errors as language errors
 
+**Task 5 — Lint + Interpret:**
+- `backend/lambda_backend.py`: `LambdaBackend.lint` (fvset, sorted names, no evaluation) and `.interpret` (`d0exp_evaluate`, empty env)
+- Errors: reader → input error; exceptions or `D0V000` (incl. inside pairs) → language error; recursion limit → backend failure
+
 ## Next
 
 **To do:**
@@ -51,4 +55,5 @@ Short running log of progress. Details live in the code, docs, and `AI-TRANSCRIP
 - [x] Task 2: venv, `requirements.txt`, copy `lambda1.py`, minimal app on 127.0.0.1
 - [x] Task 3: restricted constructor reader (`backend/reader.py`)
 - [x] Task 4: result contract (`backend/contract.py`)
-- [ ] Task 5: real Lint + Interpret (`backend/lambda_backend.py`)
+- [x] Task 5: real Lint + Interpret (`backend/lambda_backend.py`)
+- [ ] Task 6: placeholders (Type-check/Compile/Execute) + interpret timeout
