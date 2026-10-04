@@ -48,6 +48,16 @@ Short running log of progress. Details live in the code, docs, and `AI-TRANSCRIP
 - `backend/lambda_backend.py`: `LambdaBackend.lint` (fvset, sorted names, no evaluation) and `.interpret` (`d0exp_evaluate`, empty env)
 - Errors: reader → input error; exceptions or `D0V000` (incl. inside pairs) → language error; recursion limit → backend failure
 
+**Task 6 — placeholders + timeout:**
+- Type-check / Compile / Execute return `NOT_IMPLEMENTED`; Compile never yields an artifact
+- Interpret runs in a spawned child process, killed after 5 s → backend failure; retry starts fresh
+- Lint stays in-process (single tree walk, parser bounds nesting)
+
+**Backend tests (pulled forward from tasks 13–14):**
+- Added reader, contract, lint, interpret, placeholder/timeout tests + shared `tests/programs.py`
+- `TESTING.md` started with coverage table mapped to spec tests/F-IDs
+- Result: 102 passed (~4 s); deliberate break of pair `D0V000` check caught by `error-inside-pair` test
+
 ## Next
 
 **To do:**
@@ -56,4 +66,5 @@ Short running log of progress. Details live in the code, docs, and `AI-TRANSCRIP
 - [x] Task 3: restricted constructor reader (`backend/reader.py`)
 - [x] Task 4: result contract (`backend/contract.py`)
 - [x] Task 5: real Lint + Interpret (`backend/lambda_backend.py`)
-- [ ] Task 6: placeholders (Type-check/Compile/Execute) + interpret timeout
+- [x] Task 6: placeholders (Type-check/Compile/Execute) + interpret timeout
+- [ ] Task 7: model — source state, revisions, apply/discard (`model/session.py`)
