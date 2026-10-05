@@ -99,6 +99,14 @@ Short running log of progress. Details live in the code, docs, and `AI-TRANSCRIP
 - No JS runtime on this machine → static tests in `tests/test_view_script.py` + browser smoke test (214 passed total); breaks (`innerHTML`, renamed id) caught
 - Chrome extension not used → smoke test run manually by Robin; checklist in `TESTING.md`
 
+**Browser smoke test:**
+- 16-step checklist run manually in Chrome by Robin; all steps as expected, no defects
+
+**Task 16 — samples:**
+- Added error samples: undeclared variable, division by zero, malformed input, rejected code, HTML-like text, slow Fibonacci (timeout), invalid UTF-8
+- `samples/README.md` table of expected outcomes; `tests/test_samples.py` checks each (224 passed total); break (wrong documented outcome) caught
+- Measured: fib(25) ≈ 5 s, fib(27) ≈ 13 s → fib(30) ≈ 1 min, reliably times out
+
 ## Next
 
 **To do:**
@@ -114,5 +122,7 @@ Short running log of progress. Details live in the code, docs, and `AI-TRANSCRIP
 - [x] Task 10: controller action routes, dispatch, crash guard, backend substitution tests
 - [x] Task 11: view template (menu, editor, controls, status, results)
 - [x] Task 12: view script `app.js` (render state, forward actions, busy, draft sync)
-- [ ] Browser smoke test (manual, Robin) — record results in `TESTING.md`
-- [ ] Task 16: samples (error examples), Task 17: ARCHITECTURE.md, Task 18: README/TESTING/clean-checkout check
+- [x] Browser smoke test (manual, Robin) — results in `TESTING.md`
+- [x] Task 16: samples (error examples)
+- [ ] Task 17: ARCHITECTURE.md
+- [ ] Task 18: README/TESTING/clean-checkout check

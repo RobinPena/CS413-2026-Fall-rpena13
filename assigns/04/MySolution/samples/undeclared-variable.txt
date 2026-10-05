@@ -1,0 +1,5 @@
+# Open expression: "y" is never declared.
+# Lint reports it without running anything; Interpret fails at runtime.
+D0Eapp(
+  D0Elam("x", D0Eop2("+", D0Evar("x"), D0Evar("y"))),
+  D0Eint(1))

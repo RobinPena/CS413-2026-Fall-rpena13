@@ -1,0 +1,3 @@
+# <b>not bold</b> <script>alert("must not run")</script>
+# Tags in source and output must appear as plain text.
+D0Evar("<i>x</i>")

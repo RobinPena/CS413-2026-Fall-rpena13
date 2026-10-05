@@ -1,0 +1,2 @@
+# Missing closing parenthesis: rejected as invalid input before anything runs.
+D0Eop2("+", D0Eint(1), D0Eint(2)

@@ -1,0 +1,3 @@
+# Closed expression: passes Lint, but fails when interpreted.
+# Shows that Lint checks declarations, not runtime behavior.
+D0Eop2("/", D0Eint(1), D0Eint(0))
