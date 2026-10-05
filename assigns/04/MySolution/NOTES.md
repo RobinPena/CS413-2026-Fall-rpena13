@@ -91,6 +91,14 @@ Short running log of progress. Details live in the code, docs, and `AI-TRANSCRIP
 - `/` renders the template; tests parse the page with `html.parser` (200 passed total); breaks (reordered actions, `|safe` escaping) caught
 - Look will be revised by Robin; tests check structure only
 
+**Task 12 — view script:**
+- `app.js`: `render(state)` copies server state to the page (textContent only); `run()` gives every click the same busy → request → render cycle
+- Draft sync: first keystroke immediate, then 400 ms debounce; actions wait for pending edit; editor never overwritten while typing
+- Duplicate disabled-reasons shown once; reload while busy polls until idle; network/HTTP errors shown in alert
+- 413 message reworded ("submitted source", not "upload") since it also covers edits
+- No JS runtime on this machine → static tests in `tests/test_view_script.py` + browser smoke test (214 passed total); breaks (`innerHTML`, renamed id) caught
+- Chrome extension not used → smoke test run manually by Robin; checklist in `TESTING.md`
+
 ## Next
 
 **To do:**
@@ -105,4 +113,6 @@ Short running log of progress. Details live in the code, docs, and `AI-TRANSCRIP
 - [x] Task 9: controller source routes (upload, manual, canned, edit, apply, discard)
 - [x] Task 10: controller action routes, dispatch, crash guard, backend substitution tests
 - [x] Task 11: view template (menu, editor, controls, status, results)
-- [ ] Task 12: view script `app.js` (render state, forward actions, busy, draft sync) + browser smoke test
+- [x] Task 12: view script `app.js` (render state, forward actions, busy, draft sync)
+- [ ] Browser smoke test (manual, Robin) — record results in `TESTING.md`
+- [ ] Task 16: samples (error examples), Task 17: ARCHITECTURE.md, Task 18: README/TESTING/clean-checkout check

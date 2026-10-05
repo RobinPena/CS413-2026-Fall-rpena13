@@ -53,7 +53,8 @@ def _request_error(e):
 
 @bp.errorhandler(RequestEntityTooLarge)
 def _too_large(e):
-    return _respond(413, "validation", "The upload is larger than 64 KiB.")
+    return _respond(413, "validation",
+                    "The submitted source is larger than 64 KiB.")
 
 
 @bp.app_errorhandler(404)
