@@ -85,6 +85,12 @@ Short running log of progress. Details live in the code, docs, and `AI-TRANSCRIP
 - `FakeBackend` options: `crashes`, `gate`, `artifact`; controller tests swap backends with no view changes
 - Tests: `tests/test_controller_actions.py` (192 passed total); breaks (no crash guard, swapped dispatch) caught; live check of all five actions
 
+**Task 11 — view structure:**
+- `view/templates/index.html`: Load source button group, editor + Apply/Discard, actions from `Operation` order with reason slots, status (`role=status`), error (`role=alert`), results list
+- `view/static/style.css`: CSS variables for restyling; outcomes shown as text, color only as cue
+- `/` renders the template; tests parse the page with `html.parser` (200 passed total); breaks (reordered actions, `|safe` escaping) caught
+- Look will be revised by Robin; tests check structure only
+
 ## Next
 
 **To do:**
@@ -98,4 +104,5 @@ Short running log of progress. Details live in the code, docs, and `AI-TRANSCRIP
 - [x] Task 8: model validation (empty/UTF-8/64 KiB) + busy state + action gating
 - [x] Task 9: controller source routes (upload, manual, canned, edit, apply, discard)
 - [x] Task 10: controller action routes, dispatch, crash guard, backend substitution tests
-- [ ] Task 11: view template (menu, editor, controls, status, results)
+- [x] Task 11: view template (menu, editor, controls, status, results)
+- [ ] Task 12: view script `app.js` (render state, forward actions, busy, draft sync) + browser smoke test

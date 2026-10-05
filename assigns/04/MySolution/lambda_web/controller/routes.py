@@ -1,7 +1,8 @@
 """Controller: turns HTTP requests into model calls and returns the
 resulting state as JSON. It holds no rules; whether a change is allowed
 is always the model's decision."""
-from flask import Blueprint, current_app, jsonify, request
+from flask import (Blueprint, current_app, jsonify, render_template,
+                   request)
 from werkzeug.exceptions import RequestEntityTooLarge
 
 from lambda_web.backend.contract import (Artifact, LanguageBackend,
@@ -68,8 +69,10 @@ def _no_route(e):
 
 @bp.get("/")
 def index():
-    return ("LAMBDA web front-end: scaffold running.\n", 200,
-            {"Content-Type": "text/plain; charset=utf-8"})
+    return render_template(
+        "index.html",
+        examples=examples.catalog(),
+        actions=[(key, op.value) for key, op in _ACTIONS.items()])
 
 
 @bp.get("/api/state")
