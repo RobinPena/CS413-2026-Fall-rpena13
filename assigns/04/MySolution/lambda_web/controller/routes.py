@@ -4,11 +4,16 @@ is always the model's decision."""
 from flask import Blueprint, current_app, jsonify, request
 from werkzeug.exceptions import RequestEntityTooLarge
 
+from lambda_web.backend.contract import (Artifact, LanguageBackend,
+                                         Operation, Result)
 from lambda_web.controller import examples
 from lambda_web.controller.serialize import snapshot_to_dict
-from lambda_web.model import Origin, Session, StateError, ValidationError
+from lambda_web.model import (Job, Origin, Session, StateError,
+                              ValidationError)
 
 bp = Blueprint("controller", __name__)
+
+_ACTIONS = {op.name.lower(): op for op in Operation}
 
 
 class RequestError(Exception):
@@ -17,6 +22,10 @@ class RequestError(Exception):
 
 def _session() -> Session:
     return current_app.extensions["lambda_web"]["session"]
+
+
+def _backend() -> LanguageBackend:
+    return current_app.extensions["lambda_web"]["backend"]
 
 
 def _respond(status: int = 200, kind: str | None = None,
@@ -110,6 +119,43 @@ def apply():
 def discard():
     _session().discard()
     return _respond()
+
+
+@bp.post("/api/actions/<action_id>")
+def action(action_id: str):
+    """Run one tool action: the model decides whether it may start, the
+    backend does the work, and the model records the outcome. Any
+    unexpected error still ends the operation, so the page never stays
+    busy."""
+    operation = _ACTIONS.get(action_id)
+    if operation is None:
+        return _respond(404, "request", f"Unknown action {action_id!r}.")
+    session = _session()
+    job = session.begin(operation)
+    try:
+        result, artifact = _dispatch(_backend(), job)
+        session.finish(result, artifact)
+    except Exception as e:
+        current_app.logger.exception("%s failed", operation.value)
+        session.fail(f"Backend error: {type(e).__name__}: {e}")
+    return _respond()
+
+
+def _dispatch(backend: LanguageBackend,
+              job: Job) -> tuple[Result, Artifact | None]:
+    """Call the backend operation for `job`. Only Compile can produce an
+    artifact; Execute consumes the one the model handed out."""
+    match job.operation:
+        case Operation.LINT:
+            return backend.lint(job.text, job.revision), None
+        case Operation.INTERPRET:
+            return backend.interpret(job.text, job.revision), None
+        case Operation.TYPECHECK:
+            return backend.typecheck(job.text, job.revision), None
+        case Operation.COMPILE:
+            return backend.compile(job.text, job.revision)
+        case Operation.EXECUTE:
+            return backend.execute(job.artifact), None
 
 
 def _text_field() -> str:

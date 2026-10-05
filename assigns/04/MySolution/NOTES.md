@@ -79,6 +79,12 @@ Short running log of progress. Details live in the code, docs, and `AI-TRANSCRIP
 - Port back to 5000 after AirPlay fix; live check on 127.0.0.1 and localhost
 - Tests: `tests/test_controller_source.py` + `tests/fakes.py` (176 passed total); breaks (no 409 handler, controller importing backend) caught
 
+**Task 10 — controller actions:**
+- `POST /api/actions/<id>`: `begin` → `_dispatch` → `finish`; any exception (backend or `finish`) → `fail`, logged, page never stuck busy
+- Execute gets the model's artifact for the current revision; never recompiles
+- `FakeBackend` options: `crashes`, `gate`, `artifact`; controller tests swap backends with no view changes
+- Tests: `tests/test_controller_actions.py` (192 passed total); breaks (no crash guard, swapped dispatch) caught; live check of all five actions
+
 ## Next
 
 **To do:**
@@ -91,4 +97,5 @@ Short running log of progress. Details live in the code, docs, and `AI-TRANSCRIP
 - [x] Task 7: model — source state, revisions, apply/discard (`model/session.py`)
 - [x] Task 8: model validation (empty/UTF-8/64 KiB) + busy state + action gating
 - [x] Task 9: controller source routes (upload, manual, canned, edit, apply, discard)
-- [ ] Task 10: controller action routes, dispatch, crash guard, backend substitution tests
+- [x] Task 10: controller action routes, dispatch, crash guard, backend substitution tests
+- [ ] Task 11: view template (menu, editor, controls, status, results)
