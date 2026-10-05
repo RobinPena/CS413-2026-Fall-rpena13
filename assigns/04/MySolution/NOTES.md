@@ -30,7 +30,7 @@ Short running log of progress. Details live in the code, docs, and `AI-TRANSCRIP
 - venv on Python 3.14.8; pinned flask 3.1.3, pytest 9.1.1
 - `lambda1.py` copied unchanged into `lambda_web/backend/`
 - App factory `create_app()`; placeholder `/` route in controller blueprint
-- `run.py` binds 127.0.0.1:5000 (AirPlay Receiver disabled; use 127.0.0.1, not localhost)
+- `run.py` binds 127.0.0.1:5000 (AirPlay Receiver disabled; 127.0.0.1 and localhost both verified)
 - Smoke tests pass
 
 **Task 3 — reader:**
@@ -71,6 +71,14 @@ Short running log of progress. Details live in the code, docs, and `AI-TRANSCRIP
 - Tests: `tests/test_model_rules.py` (146 passed total); break (edit ignoring busy) caught
 - Found: simultaneous-click test couldn't detect a missing lock (0/200); fixed by widening the check→busy gap in the test, now catches it every time
 
+**Task 9 — controller source routes:**
+- `create_app(backend, session)` is the only place choosing the concrete backend; one shared `Session` per server
+- JSON routes: state, upload, canned, manual, edit, apply (sends text), discard; errors → 409/422/400/413/404 with full state
+- Unknown `/api/` paths (404/405) answer in the same JSON shape; found when a decoded `../` path got Flask's HTML 404
+- `serialize.py` (Snapshot → plain dict), `examples.py` (catalog → `samples/*.txt`), samples factorial(10) / fibonacci(10)
+- Port back to 5000 after AirPlay fix; live check on 127.0.0.1 and localhost
+- Tests: `tests/test_controller_source.py` + `tests/fakes.py` (176 passed total); breaks (no 409 handler, controller importing backend) caught
+
 ## Next
 
 **To do:**
@@ -82,4 +90,5 @@ Short running log of progress. Details live in the code, docs, and `AI-TRANSCRIP
 - [x] Task 6: placeholders (Type-check/Compile/Execute) + interpret timeout
 - [x] Task 7: model — source state, revisions, apply/discard (`model/session.py`)
 - [x] Task 8: model validation (empty/UTF-8/64 KiB) + busy state + action gating
-- [ ] Task 9: controller source routes (upload, manual, canned, edit, apply, discard)
+- [x] Task 9: controller source routes (upload, manual, canned, edit, apply, discard)
+- [ ] Task 10: controller action routes, dispatch, crash guard, backend substitution tests

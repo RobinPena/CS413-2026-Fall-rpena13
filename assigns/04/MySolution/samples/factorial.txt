@@ -1,0 +1,9 @@
+# Factorial in LAMBDA: fix f(n). if n <= 0 then 1 else n * f(n - 1)
+# Applied to 10; change the argument at the bottom to try other values.
+D0Eapp(
+  D0Efix("f", "n",
+    D0Eif0(D0Eop2("<=", D0Evar("n"), D0Eint(0)),
+      D0Eint(1),
+      D0Eop2("*", D0Evar("n"),
+        D0Eapp(D0Evar("f"), D0Eop2("-", D0Evar("n"), D0Eint(1)))))),
+  D0Eint(10))
