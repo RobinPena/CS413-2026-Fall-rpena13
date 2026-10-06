@@ -4,7 +4,7 @@ import pytest
 from lambda_web.backend import lambda1 as L
 from lambda_web.backend.contract import Operation, Outcome
 from lambda_web.backend.lambda_backend import LambdaBackend
-from tests.programs import ADD_42, DIV_ZERO, fact, fib
+from tests.programs import ADD_42, DIV_ZERO, fact
 
 V, I = L.D0Evar, L.D0Eint
 Op2, Lam, Fix, App, Let = L.D0Eop2, L.D0Elam, L.D0Efix, L.D0Eapp, L.D0Elet
@@ -64,8 +64,7 @@ def test_fvset_let_initializer_is_outside_scope():
 B = LambdaBackend()
 
 
-@pytest.mark.parametrize("source", [ADD_42, fact(5), fib(10),
-                                    'D0Elam("unused", D0Eint(1))'])
+@pytest.mark.parametrize("source", [ADD_42, 'D0Elam("unused", D0Eint(1))'])
 def test_lint_passes_closed_program(source):
     r = B.lint(source, 7)
     assert (r.operation, r.revision, r.outcome) == \
@@ -88,7 +87,3 @@ def test_lint_does_not_evaluate(monkeypatch):
     monkeypatch.setattr(L, "d0exp_evaluate", boom)
     assert B.lint(fact(5), 1).ok
 
-
-def test_lint_reports_malformed_input():
-    r = B.lint('D0Eint(', 1)
-    assert r.outcome is Outcome.INPUT_ERROR

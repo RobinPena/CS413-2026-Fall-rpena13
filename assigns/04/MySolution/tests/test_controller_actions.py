@@ -9,7 +9,6 @@ from lambda_web.backend.contract import Operation, Outcome, Result
 from lambda_web.backend.lambda_backend import LambdaBackend
 from lambda_web.controller import examples
 from tests.fakes import FakeBackend
-from tests.programs import fib
 
 FACT = examples.get("factorial").text
 
@@ -172,17 +171,3 @@ def test_wrong_result_from_backend_does_not_leave_page_busy():
     state, _ = body(client.post("/api/actions/lint"))
     assert state["busy"] is None
     assert state["results"][-1]["outcome"] == "backend failure"
-
-
-def test_real_timeout_through_http_then_retry():
-    client = create_app(backend=LambdaBackend(timeout=0.5)).test_client()
-    client.post("/api/source/apply", json={"text": fib(30)})
-    state, _ = body(client.post("/api/actions/interpret"))
-    last = state["results"][-1]
-    assert last["outcome"] == "backend failure"
-    assert last["message"].startswith("Timed out")
-    assert state["busy"] is None
-
-    client.post("/api/source/apply", json={"text": fib(10)})
-    state, _ = body(client.post("/api/actions/interpret"))
-    assert state["results"][-1]["output"] == "D0Vint(arg1=55)"

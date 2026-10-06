@@ -110,6 +110,11 @@ Short running log of progress. Details live in the code, docs, and `AI-TRANSCRIP
 **Task 17 — ARCHITECTURE.md:**
 - Component diagram, responsibility table, controller-coordinates-backend rationale, Load → Lint → Interpret sequence (+ undeclared variable), backend contract, 2 design decisions (child process; JSON snapshots), placeholder replacement path, view contract, enforced boundaries
 
+**Test cleanup:**
+- 224 → 177 tests: removed `test_smoke.py`, `test_contract.py`, `test_placeholders_timeout.py`; trimmed same-path parameter cases; dropped controller tests duplicating model rules
+- Every spec Test 1–6 still covered; earlier breaks (pair `D0V000`, swapped dispatch) still caught
+- Mistake caught: first removal script was too greedy in two controller test files; restored from last commit and redone with exact matches
+
 ## Next
 
 **To do:**

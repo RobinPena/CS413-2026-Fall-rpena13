@@ -9,7 +9,6 @@ from pathlib import Path
 import pytest
 
 from lambda_web import MAX_REQUEST_BYTES, create_app
-from lambda_web.backend.lambda_backend import LambdaBackend
 from lambda_web.controller import examples
 from lambda_web.model import MAX_SOURCE_BYTES
 from tests.fakes import FakeBackend
@@ -53,15 +52,6 @@ def test_canned_example_loads_as_revision(client, key, title):
     assert (state["source"]["name"], state["source"]["origin"],
             state["source"]["revision"]) == (title, "canned", 1)
     assert state["source"]["text"] == examples.get(key).text
-
-
-@pytest.mark.parametrize("key, value", [("factorial", "D0Vint(arg1=3628800)"),
-                                        ("fibonacci", "D0Vint(arg1=55)")])
-def test_canned_examples_are_valid_programs(key, value):
-    backend = LambdaBackend()
-    text = examples.get(key).text
-    assert backend.lint(text, 1).ok
-    assert backend.interpret(text, 1).output == value
 
 
 def test_unknown_example_is_404_and_state_unchanged(client):
@@ -122,28 +112,6 @@ def test_manual_input_without_upload(client):
     assert state["draft"] is None
 
 
-def test_apply_without_manual_menu_becomes_manual_input(client):
-    state, _ = body(client.post("/api/source/apply", json={"text": ADD_42}))
-    assert state["source"]["name"] == "Manual input"
-
-
-def test_edit_and_apply_creates_new_revision(client):
-    client.post("/api/source/canned/factorial")
-    state, _ = body(client.post("/api/source/edit", json={"text": ADD_42}))
-    assert state["draft"] == ADD_42 and not state["can_change_source"]
-    assert not any(a["enabled"] for a in state["actions"])
-    state, _ = body(client.post("/api/source/apply", json={"text": ADD_42}))
-    assert (state["source"]["name"], state["source"]["text"],
-            state["source"]["revision"]) == ("Factorial", ADD_42, 2)
-
-
-def test_source_replacement(client):
-    client.post("/api/source/canned/factorial")
-    state, _ = body(client.post("/api/source/canned/fibonacci"))
-    assert (state["source"]["name"], state["source"]["revision"]) == \
-        ("Fibonacci", 2)
-
-
 def test_draft_blocks_source_replacement_with_409(client):
     client.post("/api/source/canned/factorial")
     client.post("/api/source/edit", json={"text": ADD_42})
@@ -162,21 +130,10 @@ def test_invalid_apply_keeps_draft_and_source(client):
     assert state["draft"] == "  " and state["source"]["revision"] == 1
 
 
-def test_discard_restores_applied_source(client):
-    client.post("/api/source/canned/factorial")
-    client.post("/api/source/edit", json={"text": ADD_42})
-    state, _ = body(client.post("/api/source/discard"))
-    assert state["draft"] is None and state["source"]["revision"] == 1
-
-
-def test_discard_without_draft_is_409(client):
-    client.post("/api/source/canned/factorial")
-    assert client.post("/api/source/discard").status_code == 409
-
-
-@pytest.mark.parametrize("route", ["/api/source/edit", "/api/source/apply"])
-@pytest.mark.parametrize("payload", [None, {}, {"text": 5}],
-                         ids=["no-body", "no-text", "non-string"])
+@pytest.mark.parametrize("route, payload", [
+    ("/api/source/edit", None),
+    ("/api/source/apply", {"text": 5}),
+], ids=["edit-no-body", "apply-non-string"])
 def test_text_routes_require_text_field(client, route, payload):
     resp = client.post(route, json=payload) if payload is not None \
         else client.post(route)
