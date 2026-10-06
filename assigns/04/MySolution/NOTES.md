@@ -109,11 +109,17 @@ Short running log of progress. Details live in the code, docs, and `AI-TRANSCRIP
 
 **Task 17 — ARCHITECTURE.md:**
 - Component diagram, responsibility table, controller-coordinates-backend rationale, Load → Lint → Interpret sequence (+ undeclared variable), backend contract, 2 design decisions (child process; JSON snapshots), placeholder replacement path, view contract, enforced boundaries
+- Final pass: grammar and consistency (sentences instead of dashes, serial commas, "would" for future features, IDs), accurate status-code mapping incl. 405, Why/Tradeoff labels throughout, descriptive title
 
 **Test cleanup:**
 - 224 → 177 tests: removed `test_smoke.py`, `test_contract.py`, `test_placeholders_timeout.py`; trimmed same-path parameter cases; dropped controller tests duplicating model rules
 - Every spec Test 1–6 still covered; earlier breaks (pair `D0V000`, swapped dispatch) still caught
 - Mistake caught: first removal script was too greedy in two controller test files; restored from last commit and redone with exact matches
+
+**Task 18 — README + traceability:**
+- README: requirements, setup/run/test commands, input format, limits (incl. recursion depth ~160 calls, kept as documented limitation), 5 demos, known limitations, layout; reflection left for Robin
+- TESTING.md: F1–F10 traceability and assignment §4 required-tests tables
+- Every README demo result re-verified against the code (3628800, 55, 42, ZeroDivisionError, 5 s timeout, fact(164)/fact(165))
 
 ## Next
 

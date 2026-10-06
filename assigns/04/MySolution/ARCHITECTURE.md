@@ -134,8 +134,8 @@ independent, and passing Lint only means the expression is closed.
 ```text
 lint(source, revision)       -> Result
 interpret(source, revision)  -> Result
-typecheck(source, revision)  -> Result                       (NOT_IMPLEMENTED today)
-compile(source, revision)    -> (Result, Artifact | None)    (NOT_IMPLEMENTED, None today)
+typecheck(source, revision)  -> Result                       (NOT_IMPLEMENTED)
+compile(source, revision)    -> (Result, Artifact | None)    (NOT_IMPLEMENTED)
 execute(artifact)            -> Result                       (unreachable until an artifact exists)
 ```
 

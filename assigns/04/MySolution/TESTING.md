@@ -18,6 +18,34 @@ Run from `MySolution/`: `.venv/bin/pytest -v` (177 tests, about 5 s; no browser 
 | `tests/test_samples.py` | Every file in `samples/` gives the Lint and Interpret outcomes documented in `samples/README.md` (incl. Lint-pass/Interpret-fail and timeout); invalid UTF-8 sample rejected on upload; no undocumented samples | F1, F3, F5, F6, F9, F10 (sample inputs) |
 
 
+## Traceability: requirements F1–F10
+
+| Req. | Requirement | Automated tests | Smoke steps |
+| --- | --- | --- | --- |
+| F1 | Load source menu, source name and revision | `test_view_page.py` (menu options), `test_controller_source.py` (canned, upload, manual input), `test_model.py` (load, manual input) | 2, 4, 6, 12 |
+| F2 | Typing without upload, editing, Apply/Discard, edits block actions and replacement | `test_model.py` (editing, discard, typing without upload, draft blocks replacement), `test_model_rules.py` (unapplied edits disable actions), `test_controller_source.py` (409) | 6, 7, 8, 9 |
+| F3 | Reject empty, invalid UTF-8 and oversized input, keeping the applied source and the rejected edit | `test_model_rules.py` (validation), `test_controller_source.py` (rejected uploads, 422 apply), `test_samples.py` (invalid UTF-8) | 10, 13 |
+| F4 | Buttons in order, applied source required, Execute disabled | `test_view_page.py` (order), `test_model_rules.py` (gating), `test_controller_actions.py` (refusals) | 1, 2 |
+| F5 | Lint reports undeclared names or none | `test_lint.py`, `test_controller_actions.py` (real Lint), `test_samples.py` | 3, 7, 8 |
+| F6 | Interpret shows value or diagnostic, input vs runtime errors | `test_interpret.py`, `test_controller_actions.py` (real Interpret), `test_samples.py` | 3, 4, 11 |
+| F7 | Type-check/Compile not implemented, Execute explained | `test_controller_actions.py` (placeholders, Execute unavailable), `test_model_rules.py` (Execute reason) | 2, 5 |
+| F8 | New revision clears results and artifacts, rejected changes preserve state | `test_model.py` (results cleared, stale ignored), `test_model_rules.py` (artifact invalidation), `test_controller_actions.py` (results cleared) | 4 |
+| F9 | Results show action, revision and outcome, text shown literally | `test_view_page.py` (escaping), `test_view_script.py` (no markup insertion), `test_controller_source.py` (HTML-like text), `test_samples.py` | 14 |
+| F10 | Busy status, conflicts prevented, recovery, retry, time limit | `test_model_rules.py` (busy, fail, retry, simultaneous clicks), `test_controller_actions.py` (busy, crash, retry), `test_samples.py` (timeout) | 3, 15 |
+
+## Required automated tests (assignment, section 4)
+
+| # | Required coverage | Where |
+| --- | --- | --- |
+| 1 | Free variables for every constructor, duplicates, nested bindings, recursive functions, `let` initializer scope, `frozenset` result | `test_lint.py` |
+| 2 | Lint success and listed names; Lint does not evaluate | `test_lint.py` |
+| 3 | Arithmetic, factorial and Fibonacci with base cases; malformed input; runtime failures | `test_interpret.py`, `test_samples.py` |
+| 4 | Manual input without upload, replacement, editing, rejected changes keep the applied source | `test_model.py`, `test_model_rules.py`, `test_controller_source.py` |
+| 5 | Backend dispatch; placeholders never succeed; Execute unavailable | `test_controller_actions.py` |
+| 6 | Busy state, backend failure, successful retry | `test_controller_actions.py`, `test_model_rules.py` |
+| — | A model test runs without a browser or server | `test_model.py`, `test_model_rules.py` |
+| — | A controller test substitutes a test backend without view changes | `test_controller_actions.py` (`FakeBackend`) |
+
 ## Browser smoke test
 
 Manual run against `.venv/bin/python run.py`, opened at `http://127.0.0.1:5000`.
