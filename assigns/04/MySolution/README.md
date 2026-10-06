@@ -149,5 +149,28 @@ tests/                  automated tests
 
 ## Reflection
 
-<!-- Written by Robin: 200–300 words on where MVC helped, where separation
-was difficult, and a future change the architecture makes easier. -->
+MVC helped most by letting me test each piece on its own. The model is plain
+Python, so every rule about revisions, drafts, validation and the busy state
+could be checked in milliseconds without starting a server or opening a
+browser. Since the controller talks to the backend only through a contract,
+I could swap in a fake backend that crashes, blocks or pretends to compile,
+and test failure, retry and the Execute path without touching the view. The
+same separation kept the view safe to restyle, since the tests check structure
+and element IDs rather than appearance.
+
+Separation was hardest at the boundaries between layers. Deciding who should
+call the backend took the most thought. I chose the controller, which meant a
+three-step begin, run and finish protocol, but it kept the model free of
+backend code and kept long interpretations from holding its lock. Busy
+feedback ended up in two places: the script shows that an action is running
+immediately, while the model owns the real busy flag. Keeping the editor's
+draft in sync was also tricky, because an edit request that arrived after
+Apply could have recreated a stale draft. Validation is spread across the
+reader, the model and Flask's request limit, which is correct but means three
+places to look.
+
+The change this architecture makes easiest is the next step of the project: a
+real type checker or compiler. It only needs a new backend and one change in
+create_app. Storing generated code per revision, invalidating it and handing
+it to Execute already work and are tested, so the controller and the view
+would not change at all.

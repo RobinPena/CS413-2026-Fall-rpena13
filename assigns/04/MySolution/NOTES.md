@@ -121,22 +121,10 @@ Short running log of progress. Details live in the code, docs, and `AI-TRANSCRIP
 - TESTING.md: F1–F10 traceability and assignment §4 required-tests tables
 - Every README demo result re-verified against the code (3628800, 55, 42, ZeroDivisionError, 5 s timeout, fact(164)/fact(165))
 
+**Fresh-clone check:**
+- Cloned commit cbfaca1, followed README exactly: venv + install ok, 177 passed, server serves page/script/styles, Factorial interprets to 3628800; no venv/cache files tracked
+
 ## Next
 
 **To do:**
-- [x] Install Python 3.12+ (have 3.14.8)
-- [x] Task 2: venv, `requirements.txt`, copy `lambda1.py`, minimal app on 127.0.0.1
-- [x] Task 3: restricted constructor reader (`backend/reader.py`)
-- [x] Task 4: result contract (`backend/contract.py`)
-- [x] Task 5: real Lint + Interpret (`backend/lambda_backend.py`)
-- [x] Task 6: placeholders (Type-check/Compile/Execute) + interpret timeout
-- [x] Task 7: model — source state, revisions, apply/discard (`model/session.py`)
-- [x] Task 8: model validation (empty/UTF-8/64 KiB) + busy state + action gating
-- [x] Task 9: controller source routes (upload, manual, canned, edit, apply, discard)
-- [x] Task 10: controller action routes, dispatch, crash guard, backend substitution tests
-- [x] Task 11: view template (menu, editor, controls, status, results)
-- [x] Task 12: view script `app.js` (render state, forward actions, busy, draft sync)
-- [x] Browser smoke test (manual, Robin) — results in `TESTING.md`
-- [x] Task 16: samples (error examples)
-- [x] Task 17: ARCHITECTURE.md
-- [ ] Task 18: README/TESTING/clean-checkout check
+Finish.
