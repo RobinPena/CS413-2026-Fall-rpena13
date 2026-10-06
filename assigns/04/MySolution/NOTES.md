@@ -107,6 +107,9 @@ Short running log of progress. Details live in the code, docs, and `AI-TRANSCRIP
 - `samples/README.md` table of expected outcomes; `tests/test_samples.py` checks each (224 passed total); break (wrong documented outcome) caught
 - Measured: fib(25) ≈ 5 s, fib(27) ≈ 13 s → fib(30) ≈ 1 min, reliably times out
 
+**Task 17 — ARCHITECTURE.md:**
+- Component diagram, responsibility table, controller-coordinates-backend rationale, Load → Lint → Interpret sequence (+ undeclared variable), backend contract, 2 design decisions (child process; JSON snapshots), placeholder replacement path, view contract, enforced boundaries
+
 ## Next
 
 **To do:**
@@ -124,5 +127,5 @@ Short running log of progress. Details live in the code, docs, and `AI-TRANSCRIP
 - [x] Task 12: view script `app.js` (render state, forward actions, busy, draft sync)
 - [x] Browser smoke test (manual, Robin) — results in `TESTING.md`
 - [x] Task 16: samples (error examples)
-- [ ] Task 17: ARCHITECTURE.md
+- [x] Task 17: ARCHITECTURE.md
 - [ ] Task 18: README/TESTING/clean-checkout check
