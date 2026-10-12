@@ -1,0 +1,9 @@
+# virtual environment
+.venv/
+
+# test caches
+.pytest_cache/
+__pycache__/
+
+# local notes
+NOTES.md
