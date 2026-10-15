@@ -210,6 +210,59 @@ SUBST_CASES = [
             D0Eop2("*", D0Evar("x"), D0Eint(2))),
      "x", D0Eop2("+", D0Evar("x"), D0Eint(1)),
      "(let x = ((x + 1) + 1) in (x * 2))"),
+    # nested shadowing while renaming
+    ("renaming stops at an inner lam",
+     D0Elam("y", D0Eop2("+", D0Evar("y"),
+                        D0Elam("y", D0Eop2("+", D0Evar("x"), D0Evar("y"))))),
+     "x", D0Evar("y"), "(lam y_1. (y_1 + (lam y_2. (y + y_2))))"),
+    ("renaming stops at an inner let body",
+     D0Elam("y", D0Elet("y", D0Eop2("+", D0Evar("y"), D0Evar("x")),
+                        D0Eop2("*", D0Evar("y"), D0Evar("x")))),
+     "x", D0Evar("y"), "(lam y_1. (let y_2 = (y_1 + y) in (y_2 * y)))"),
+    ("renaming stops at an inner fix name",
+     D0Elam("f", D0Eop2(
+         "+", D0Evar("f"),
+         D0Efix("f", "n", D0Eop2("+", D0Evar("x"),
+                                 D0Eapp(D0Evar("f"), D0Evar("n")))))),
+     "x", D0Evar("f"), "(lam f_1. (f_1 + (fix f_2(n). (f + (f_2 n)))))"),
+    ("renaming stops at an inner fix parameter",
+     D0Elam("n", D0Eop2(
+         "+", D0Evar("n"),
+         D0Efix("g", "n", D0Eop2("+", D0Evar("x"), D0Evar("n"))))),
+     "x", D0Evar("n"), "(lam n_1. (n_1 + (fix g(n_2). (n + n_2))))"),
+    # fresh names avoid every existing name and earlier generated names
+    ("fresh name skips a bound name in scope",
+     D0Elam("y", D0Elam("y_1", D0Eop2("+", D0Evar("x"), D0Evar("y")))),
+     "x", D0Evar("y"), "(lam y_2. (lam y_1. (y + y_2)))"),
+    ("fresh name skips a bound name out of scope",
+     D0Epair(D0Elam("y", D0Eop2("+", D0Evar("x"), D0Evar("y"))),
+             D0Elam("y_1", D0Evar("y_1"))),
+     "x", D0Evar("y"), "(pair (lam y_2. (y + y_2)) (lam y_1. y_1))"),
+    ("fresh name skips let and fix binders",
+     D0Elam("n", D0Elet("n_1", D0Eint(1),
+                        D0Efix("n_2", "n_3",
+                               D0Eop2("+", D0Evar("x"), D0Evar("n"))))),
+     "x", D0Evar("n"), "(lam n_4. (let n_1 = 1 in (fix n_2(n_3). (n + n_4))))"),
+    ("fresh name skips free names in the replacement",
+     D0Elam("y", D0Eop2("+", D0Evar("x"), D0Evar("y"))), "x",
+     D0Eop2("+", D0Evar("y"), D0Evar("y_1")), "(lam y_2. ((y + y_1) + y_2))"),
+    ("fresh name skips bound names in the replacement",
+     D0Elam("y", D0Eop2("+", D0Evar("x"), D0Evar("y"))), "x",
+     D0Eapp(D0Evar("y"), D0Elam("y_1", D0Evar("y_1"))),
+     "(lam y_2. ((y (lam y_1. y_1)) + y_2))"),
+    ("fresh name skips the target",
+     D0Elam("y", D0Eop2("+", D0Evar("y_1"), D0Evar("y"))), "y_1", D0Evar("y"),
+     "(lam y_2. (y + y_2))"),
+    ("sibling binders get different fresh names",
+     D0Epair(D0Elam("y", D0Eop2("+", D0Evar("x"), D0Evar("y"))),
+             D0Elam("y", D0Eapp(D0Evar("y"), D0Evar("x")))),
+     "x", D0Evar("y"), "(pair (lam y_1. (y + y_1)) (lam y_2. (y_2 y)))"),
+    # no evaluation or simplification
+    ("arithmetic is not simplified", D0Eop2("+", D0Evar("x"), D0Eint(1)), "x",
+     D0Eint(2), "(2 + 1)"),
+    ("application is not reduced",
+     D0Eapp(D0Elam("y", D0Evar("y")), D0Evar("x")), "x", D0Eint(4),
+     "((lam y. y) 4)"),
 ]
 
 # (name, expression, target, replacement, expected expression)
@@ -230,4 +283,19 @@ SUBST_AST_CASES = [
     ("replacement inserted as is", D0Evar("x"), "x",
      D0Eop2("+", D0Evar("x"), D0Eint(1)),
      D0Eop2("+", D0Evar("x"), D0Eint(1))),
+]
+
+# (name, expression, target, replacement, expected printed result)
+# Each result raises or never finishes when evaluated.
+SUBST_NO_EVAL_CASES = [
+    ("division by zero", D0Eop2("/", D0Evar("x"), D0Eint(0)), "x", D0Eint(1),
+     "(1 / 0)"),
+    ("failing replacement", D0Eop2("+", D0Evar("x"), D0Eint(1)), "x",
+     D0Eop2("/", D0Eint(1), D0Eint(0)), "((1 / 0) + 1)"),
+    ("applying a non-function", D0Eapp(D0Evar("x"), D0Eint(2)), "x", D0Eint(1),
+     "(1 2)"),
+    ("projection of a non-pair", D0Epfst(D0Evar("x")), "x", D0Eint(5),
+     "(fst 5)"),
+    ("nonterminating", D0Eapp(D0Evar("x"), D0Evar("x")), "x", _SELF_APPLY,
+     "((lam x. (x x)) (lam x. (x x)))"),
 ]

@@ -31,6 +31,8 @@ class PrettyPrintTests(unittest.TestCase):
         refuse = AssertionError("expression was evaluated")
         with mock.patch.object(lambda1_vp.EvaluateVisitor, "__init__",
                                side_effect=refuse):
+            with self.assertRaises(AssertionError):
+                lambda1_vp.d0exp_evaluate(D0Eint(1))
             for name, dexp, expected in PRETTY_NO_EVAL_CASES:
                 with self.subTest(name):
                     self.assertEqual(d0exp_pretty(dexp), expected)

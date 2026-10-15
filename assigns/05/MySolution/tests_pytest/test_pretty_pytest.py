@@ -37,6 +37,11 @@ def test_no_eval_cases_fail_when_evaluated(dexp, expected):
         lambda1_vp.d0exp_evaluate(dexp)
 
 
+def test_evaluation_is_blocked(no_evaluator):
+    with pytest.raises(AssertionError):
+        lambda1_vp.d0exp_evaluate(D0Eint(1))
+
+
 @pytest.mark.usefixtures("no_evaluator")
 @pytest.mark.parametrize(("dexp", "expected"), params(PRETTY_NO_EVAL_CASES))
 def test_prints_without_evaluating(dexp, expected):
