@@ -137,3 +137,96 @@ class FreshNames:
         name = f"{base}_{k}"
         self.used.add(name)
         return name
+
+
+class SubstitutionVisitor(D0ExpVisitor[d0exp]):
+    """Replace the free occurrences of target with replacement.
+
+    The visitor carries the substitution, the free names of the replacement
+    and the fresh-name supply shared by the whole call. A binder that would
+    capture a free name of the replacement is renamed first. The replacement
+    is inserted as is, and unchanged subtrees, including whole scopes where
+    substitution stops, are reused.
+    """
+
+    def __init__(self, target: dvar, replacement: d0exp,
+                 fresh: FreshNames) -> None:
+        self.target = target
+        self.replacement = replacement
+        self.replacement_fv = d0exp_fvset(replacement)
+        self.fresh = fresh
+
+    def _stops_at(self, binders: set[dvar], body: d0exp) -> bool:
+        """Whether nothing in body can change: target is bound or absent."""
+        return self.target in binders or self.target not in d0exp_fvset(body)
+
+    def _avoid_capture(self, binder: dvar, body: d0exp) -> tuple[dvar, d0exp]:
+        """Rename binder in body if it would capture a free replacement name."""
+        if binder not in self.replacement_fv:
+            return binder, body
+        renamed = self.fresh.fresh(binder)
+        rename = SubstitutionVisitor(binder, D0Evar(renamed), self.fresh)
+        return renamed, body.accept(rename)
+
+    def visit_int(self, dexp: D0Eint) -> d0exp:
+        return dexp
+
+    def visit_btf(self, dexp: D0Ebtf) -> d0exp:
+        return dexp
+
+    def visit_op1(self, dexp: D0Eop1) -> d0exp:
+        return D0Eop1(dexp.name, dexp.arg1.accept(self))
+
+    def visit_op2(self, dexp: D0Eop2) -> d0exp:
+        return D0Eop2(dexp.name, dexp.arg1.accept(self), dexp.arg2.accept(self))
+
+    def visit_var(self, dexp: D0Evar) -> d0exp:
+        return self.replacement if dexp.arg1 == self.target else dexp
+
+    def visit_lam(self, dexp: D0Elam) -> d0exp:
+        param, body = dexp.arg1, dexp.arg2
+        if self._stops_at({param}, body):
+            return dexp
+        param, body = self._avoid_capture(param, body)
+        return D0Elam(param, body.accept(self))
+
+    def visit_fix(self, dexp: D0Efix) -> d0exp:
+        fname, param, body = dexp.arg1, dexp.arg2, dexp.arg3
+        if self._stops_at({fname, param}, body):
+            return dexp
+        # The parameter goes first. When both binders share a name, the body's
+        # occurrences belong to the parameter, which shadows the function name.
+        param, body = self._avoid_capture(param, body)
+        fname, body = self._avoid_capture(fname, body)
+        return D0Efix(fname, param, body.accept(self))
+
+    def visit_app(self, dexp: D0Eapp) -> d0exp:
+        return D0Eapp(dexp.arg1.accept(self), dexp.arg2.accept(self))
+
+    def visit_if0(self, dexp: D0Eif0) -> d0exp:
+        return D0Eif0(dexp.arg1.accept(self), dexp.arg2.accept(self),
+                      dexp.arg3.accept(self))
+
+    def visit_let(self, dexp: D0Elet) -> d0exp:
+        name, init, body = dexp.arg1, dexp.arg2, dexp.arg3
+        # The initializer is outside the let's scope, so it is always substituted.
+        init = init.accept(self)
+        if self._stops_at({name}, body):
+            return D0Elet(name, init, body)
+        name, body = self._avoid_capture(name, body)
+        return D0Elet(name, init, body.accept(self))
+
+    def visit_pair(self, dexp: D0Epair) -> d0exp:
+        return D0Epair(dexp.arg1.accept(self), dexp.arg2.accept(self))
+
+    def visit_pfst(self, dexp: D0Epfst) -> d0exp:
+        return D0Epfst(dexp.arg1.accept(self))
+
+    def visit_psnd(self, dexp: D0Epsnd) -> d0exp:
+        return D0Epsnd(dexp.arg1.accept(self))
+
+
+def d0exp_substitute(dexp: d0exp, target: dvar, replacement: d0exp) -> d0exp:
+    """Return dexp[target := replacement] without capturing free names."""
+    used = d0exp_allnames(dexp) | d0exp_allnames(replacement) | {target}
+    return dexp.accept(SubstitutionVisitor(target, replacement, FreshNames(used)))
