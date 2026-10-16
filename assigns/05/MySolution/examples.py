@@ -128,6 +128,7 @@ SUBST_CASES = [
     ("let without conflict",
      D0Elet("y", D0Evar("x"), D0Eop2("+", D0Evar("x"), D0Evar("y"))),
      "x", D0Eint(3), "(let y = 3 in (3 + y))"),
+     
     # replacement containing the target
     ("replacement contains target", D0Evar("x"), "x",
      D0Eop2("+", D0Evar("x"), D0Eint(1)), "(x + 1)"),
@@ -137,6 +138,7 @@ SUBST_CASES = [
     ("replacement under a binder",
      D0Elam("y", D0Eapp(D0Evar("x"), D0Evar("y"))), "x",
      D0Eop2("+", D0Evar("x"), D0Eint(1)), "(lam y. ((x + 1) y))"),
+
     # shadowing
     ("lam shadows target",
      D0Elam("x", D0Eop2("+", D0Evar("x"), D0Evar("y"))), "x", D0Eint(3),
@@ -161,6 +163,7 @@ SUBST_CASES = [
     ("shadowing stops before a conflicting binder",
      D0Elam("x", D0Elam("y", D0Evar("x"))), "x", D0Evar("y"),
      "(lam x. (lam y. x))"),
+
     # capture avoidance
     ("lam renamed",
      D0Elam("y", D0Eop2("+", D0Evar("x"), D0Evar("y"))), "x", D0Evar("y"),
@@ -186,6 +189,7 @@ SUBST_CASES = [
     ("replacement with target and conflict",
      D0Elam("y", D0Eapp(D0Evar("x"), D0Evar("y"))), "x",
      D0Eapp(D0Evar("x"), D0Evar("y")), "(lam y_1. ((x y) y_1))"),
+
     # no unnecessary renaming
     ("target not free under binder", D0Elam("y", D0Evar("y")), "x", D0Evar("y"),
      "(lam y. y)"),
@@ -195,6 +199,7 @@ SUBST_CASES = [
     ("bound name in replacement is not a conflict",
      D0Elam("y", D0Eapp(D0Evar("x"), D0Evar("y"))), "x",
      D0Elam("y", D0Evar("y")), "(lam y. ((lam y. y) y))"),
+
     # let initializer versus body
     ("let init substituted when name is target",
      D0Elet("x", D0Evar("x"), D0Evar("x")), "x", D0Eint(3),
@@ -210,6 +215,7 @@ SUBST_CASES = [
             D0Eop2("*", D0Evar("x"), D0Eint(2))),
      "x", D0Eop2("+", D0Evar("x"), D0Eint(1)),
      "(let x = ((x + 1) + 1) in (x * 2))"),
+
     # nested shadowing while renaming
     ("renaming stops at an inner lam",
      D0Elam("y", D0Eop2("+", D0Evar("y"),
@@ -230,6 +236,7 @@ SUBST_CASES = [
          "+", D0Evar("n"),
          D0Efix("g", "n", D0Eop2("+", D0Evar("x"), D0Evar("n"))))),
      "x", D0Evar("n"), "(lam n_1. (n_1 + (fix g(n_2). (n + n_2))))"),
+
     # fresh names avoid every existing name and earlier generated names
     ("fresh name skips a bound name in scope",
      D0Elam("y", D0Elam("y_1", D0Eop2("+", D0Evar("x"), D0Evar("y")))),
@@ -257,6 +264,7 @@ SUBST_CASES = [
      D0Epair(D0Elam("y", D0Eop2("+", D0Evar("x"), D0Evar("y"))),
              D0Elam("y", D0Eapp(D0Evar("y"), D0Evar("x")))),
      "x", D0Evar("y"), "(pair (lam y_1. (y + y_1)) (lam y_2. (y_2 y)))"),
+
     # no evaluation or simplification
     ("arithmetic is not simplified", D0Eop2("+", D0Evar("x"), D0Eint(1)), "x",
      D0Eint(2), "(2 + 1)"),
