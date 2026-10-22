@@ -1,4 +1,5 @@
-"""The supplied AST is the unchanged assigns/05 file; source printing and names."""
+"""Supplied AST import, source printing, names, validation, substitution and data."""
+import copy
 import sys
 import types
 import unittest
@@ -6,6 +7,7 @@ from pathlib import Path
 
 import MySolution
 from MySolution import source_support as S
+from MySolution.results import UnsupportedSourceError
 
 ASSIGN06 = Path(__file__).resolve().parents[2]
 
@@ -86,6 +88,82 @@ class SourcePrintingAndNamesTests(unittest.TestCase):
                                  S.D0Eint(4)))
         self.assertEqual(S.show_source(dexp),
                          "(let x = 3 in ((lam y. (x + y)) 4))")
+
+
+def bad(op="/"):
+    return S.D0Eop2(op, S.D0Eint(1), S.D0Eint(1))
+
+
+class ValidationTests(unittest.TestCase):
+    def test_every_supported_form_and_operator_is_accepted(self):
+        for dexp, text, _ in EVERY_FORM:
+            with self.subTest(text):
+                S.validate_source(dexp)
+        for name in sorted(S.BINARY_OPERATORS):
+            with self.subTest(name):
+                S.validate_source(S.D0Eop2(name, S.D0Eint(1), S.D0Eint(2)))
+        self.assertEqual(S.BINARY_OPERATORS, {"+", "-", "*", "<", "<=", ">", ">=",
+                                              "==", "!=", "and", "or"})
+
+    def test_rejected_forms_and_where_they_were_found(self):
+        T = S.D0Ebtf(True)
+        cases = [
+            (S.D0Eint(-1), "negative literal -1 (at the root)"),
+            (bad("/"), "unsupported binary operator '/' (division is not in the "
+                       "language) (at the root)"),
+            (bad("%"), "unsupported binary operator '%' (at the root)"),
+            (bad("&&"), "unsupported binary operator '&&' (at the root)"),
+            (S.D0Eop1("+1", S.D0Eint(1)), "unsupported unary operator '+1' (at the root)"),
+            (S.D0Eop1("-1", S.D0Eint(1)), "unsupported unary operator '-1' (at the root)"),
+            # Never-selected branch.
+            (S.D0Eif0(T, S.D0Eint(1), S.D0Eint(-3)),
+             "negative literal -3 (at if: else branch)"),
+            # Function body that is never applied.
+            (S.D0Elam("x", bad()), "unsupported binary operator '/' (division is not "
+                                   "in the language) (at lam x: body)"),
+            (S.D0Efix("f", "n", S.D0Eif0(T, S.D0Eint(0), S.D0Eint(-2))),
+             "negative literal -2 (at fix f(n): body > if: else branch)"),
+            # Short-circuited right operand.
+            (S.D0Eop2("or", T, S.D0Eop2("==", bad("%"), S.D0Eint(0))),
+             "unsupported binary operator '%' (at 'or': right operand > "
+             "'==': left operand)"),
+            (S.D0Elet("x", S.D0Eint(1), S.D0Epair(S.D0Eint(0), S.D0Eint(-5))),
+             "negative literal -5 (at let x: body > pair: second)"),
+        ]
+        for dexp, message in cases:
+            with self.subTest(message):
+                with self.assertRaises(UnsupportedSourceError) as caught:
+                    S.validate_source(dexp)
+                self.assertEqual(str(caught.exception), message)
+
+
+class SourceSubstitutionTests(unittest.TestCase):
+    def test_capture_scope_and_fix_binders(self):
+        x, y = S.D0Evar("x"), S.D0Evar("y")
+        cases = [
+            (S.D0Elam("y", S.D0Eop2("+", x, y)), "x", y, "(lam y_1. (y + y_1))"),
+            (S.D0Elet("x", x, S.D0Eop2("+", x, y)), "x", S.D0Eint(3),
+             "(let x = 3 in (x + y))"),
+            (S.D0Efix("f", "f", S.D0Eop2("+", x, S.D0Evar("f"))), "x", S.D0Evar("f"),
+             "(fix f_2(f_1). (f + f_1))"),
+            (S.D0Efix("f", "n", x), "f", S.D0Eint(1), "(fix f(n). x)"),
+        ]
+        for dexp, name, replacement, expected in cases:
+            with self.subTest(expected):
+                before = copy.deepcopy(dexp)
+                result = S.source_substitute(dexp, name, replacement)
+                self.assertEqual(S.show_source(result), expected)
+                self.assertEqual(dexp, before)
+
+
+class SourceDataTests(unittest.TestCase):
+    def test_data_values(self):
+        self.assertEqual(S.source_data(S.D0Eint(3)), 3)
+        self.assertIs(S.source_data(S.D0Ebtf(False)), False)
+        nested = S.D0Epair(S.D0Epair(S.D0Eint(2), S.D0Ebtf(True)), S.D0Eint(3))
+        self.assertEqual(S.source_data(nested), ((2, True), 3))
+        with self.assertRaises(TypeError):
+            S.source_data(S.D0Elam("x", S.D0Evar("x")))
 
 
 if __name__ == "__main__":

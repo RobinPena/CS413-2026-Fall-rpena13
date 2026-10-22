@@ -155,12 +155,16 @@ class UnsupportedSourceError(ValueError):
 
 
 class OpenTermError(ValueError):
-    """Target execution was asked to run a term with free variables."""
+    """Evaluation was asked to run a program with free variables.
+
+    Execution is restricted to closed programs in both languages; compiling
+    and substituting into open terms remain fully supported.
+    """
 
     def __init__(self, names: frozenset[str]) -> None:
         self.names = names
         super().__init__(
-            "target execution needs a closed term; free variables: "
+            "evaluation needs a closed program; free variables: "
             + ", ".join(sorted(names)))
 
 
