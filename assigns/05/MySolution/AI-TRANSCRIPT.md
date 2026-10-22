@@ -28,7 +28,7 @@ tests, the README and a final check from a clean copy.
 ## Reflection
 
 Working this way, I spent less time writing code and more time on quality
-assurance and quality control. QA was setting the rules up front: brainstorm review, testing and keeping AI agent in check. QC was
+assurance and quality control. QA was setting the rules, requirements, needs up front, QC was
 checking what came back: reading diffs, asking whether a passing test proves
 anything and confirming the instructions work on a clean machine. The test
 suite was the clearest example. Forty passing cases looked complete, yet
