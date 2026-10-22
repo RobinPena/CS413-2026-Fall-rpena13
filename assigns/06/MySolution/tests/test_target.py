@@ -97,6 +97,11 @@ class PrintTests(unittest.TestCase):
         self.assertTrue(text.startswith("(lam v. (lam v. "))
         self.assertEqual(text.count("("), 20_000)
 
+    def test_limit_shortens_long_output(self):
+        self.assertEqual(show(deep_lambda(20_000), 16), "(lam v. (lam v. ...")
+        self.assertEqual(show(Lam("x", x), 16), "(lam x. x)")
+        self.assertEqual(show(App(f, x), 3), "(f ...")
+
     def test_size_counts_printed_nodes(self):
         self.assertEqual(size(app(f, x, y)), 5)
         self.assertEqual(size(App(I, I)), 5)  # a shared subtree counts twice

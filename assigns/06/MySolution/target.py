@@ -115,24 +115,34 @@ def lam(*parts: str | Term) -> Lam:
 ########################################################################
 # Printing and traversal.
 
-def show(term: Term) -> str:
-    """Print in the required notation: x, (lam x. body) and (fn arg)."""
+def show(term: Term, limit: int | None = None) -> str:
+    """Print in the required notation: x, (lam x. body) and (fn arg).
+
+    With a `limit`, stop after about that many characters and end with
+    "...", which keeps messages about large terms short.
+    """
     pieces: list[str] = []
+    length = 0
     todo: list[Term | str] = [term]
     while todo:
+        if limit is not None and length > limit:
+            return "".join(pieces)[:limit] + "..."
         item = todo.pop()
         match item:
             case str():
-                pieces.append(item)
+                piece = item
             case Var(name):
-                pieces.append(name)
+                piece = name
             case Lam(name, body):
-                pieces.append(f"(lam {name}. ")
+                piece = f"(lam {name}. "
                 todo += [")", body]
             case App(fn, arg):
-                pieces.append("(")
+                piece = "("
                 todo += [")", arg, " ", fn]
-    return "".join(pieces)
+        pieces.append(piece)
+        length += len(piece)
+    text = "".join(pieces)
+    return text if limit is None or len(text) <= limit else text[:limit] + "..."
 
 
 def iter_nodes(term: Term) -> Iterator[Term]:
