@@ -247,14 +247,21 @@ class SourceSemanticsTests(unittest.TestCase):
 
     def test_selected_divergence_and_strict_positions_exhaust(self):
         for program in (
-            if_(boolean(True), loop(), num(2)),
+            if_(boolean(True), loop(), num(2)),      # selected branches
+            if_(boolean(False), num(1), loop()),
+            if_(loop_bool(), num(1), num(2)),        # the condition itself
             op("and", boolean(True), loop_bool()),
             op("or", boolean(False), loop_bool()),
+            op("and", loop_bool(), boolean(False)),
+            not_(loop_bool()),
             call(fun("x", num(0)), loop()),          # unused argument
+            call(loop(), num(1)),
             let("x", loop(), num(2)),                # unused initializer
+            pair(num(2), loop()),
             fst(pair(num(2), loop())),               # either pair field
             snd(pair(loop(), boolean(True))),
             op("+", loop(), num(1)),
+            op("*", num(1), loop()),
             loop(),
         ):
             with self.subTest(show_source(program)):

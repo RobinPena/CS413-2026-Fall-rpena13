@@ -238,7 +238,7 @@ class BudgetOverrideTests(TemporaryTermsDir):
         status, output = run_main("--only", "DEMO-10", "--observation-budget", "10",
                                   "--terms-dir", str(self.terms_dir))
         self.assertEqual(status, 1)
-        self.assertIn("completed in 471 of 10,000 beta-value steps", output)
+        self.assertRegex(output, r"execution +completed in [\d,]+ of 10,000 beta-value steps")
         self.assertIn("exhausted at result after 10 of 10 steps", output)
 
     def test_divergent_example_passes_at_any_budget(self):

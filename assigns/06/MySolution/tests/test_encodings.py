@@ -17,6 +17,17 @@ from MySolution.target import (
 )
 
 
+def recomputed_fv(term) -> frozenset[str]:
+    """Free variables from the definition, independent of the cached field."""
+    match term:
+        case Var(name):
+            return frozenset({name})
+        case Lam(name, body):
+            return recomputed_fv(body) - {name}
+        case App(fn, arg):
+            return recomputed_fv(fn) | recomputed_fv(arg)
+
+
 def run(term, kind, execution_budget=100_000, observation_budget=100_000):
     result = evaluate(term, execution_budget)
     assert isinstance(result, Completed), show(term, 80)
@@ -36,6 +47,11 @@ class RepresentationTests(unittest.TestCase):
                                     "(lam x. (g (lam v. ((x x) v))))))")
         self.assertEqual(show(E.I), "(lam w. w)")
 
+    def test_identity_returns_its_argument_in_one_step(self):
+        for value in (E.TRUE, numeral(2), E.I):
+            with self.subTest(show(value)):
+                self.assertEqual(evaluate(App(E.I, value), 1), Completed(value, 1, 1))
+
     def test_zero_and_false_are_the_same_term(self):
         self.assertTrue(alpha_equivalent(numeral(0), E.FALSE))
 
@@ -49,6 +65,7 @@ class RepresentationTests(unittest.TestCase):
         for name, term in LIBRARY.items():
             with self.subTest(name):
                 self.assertEqual(free_vars(term), set())
+                self.assertEqual(recomputed_fv(term), set())
                 self.assertTrue(all(type(node) in (Var, Lam, App)
                                     for node in iter_nodes(term)))
         for n in range(4):

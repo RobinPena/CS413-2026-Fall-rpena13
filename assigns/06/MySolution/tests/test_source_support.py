@@ -1,5 +1,6 @@
 """Supplied AST import, source printing, names, validation, substitution and data."""
 import copy
+import subprocess
 import sys
 import types
 import unittest
@@ -19,6 +20,15 @@ class EnvironmentTests(unittest.TestCase):
     def test_package_is_the_assign06_solution(self):
         self.assertEqual(Path(MySolution.__file__).resolve().parent,
                          ASSIGN06 / "MySolution")
+
+    def test_documented_test_command_works_from_assigns_06(self):
+        # The README command, limited to one small file so it cannot recurse.
+        completed = subprocess.run(
+            [sys.executable, "-m", "unittest", "discover", "-s", "MySolution/tests",
+             "-t", ".", "-p", "test_names.py"],
+            cwd=ASSIGN06, capture_output=True, text=True, timeout=60)
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertRegex(completed.stderr, r"Ran [1-9]\d* tests? in .*\n\nOK")
 
 
 class SuppliedAstTests(unittest.TestCase):
