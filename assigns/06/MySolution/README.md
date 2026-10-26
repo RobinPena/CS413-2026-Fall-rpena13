@@ -13,6 +13,13 @@ explicit expected answer and the source result.
 See `DESIGN.md` for the translation rules and correctness argument, and
 `AI-TRANSCRIPT.md` for how AI was used.
 
+## Presentation
+
+| File | Contents |
+| --- | --- |
+| [`MySolution/presentation/slides.pdf`](presentation/slides.pdf) | The slide deck, 12 slides |
+| [`MySolution/presentation/Presentation.mp4`](presentation/Presentation.mp4) | The recorded presentation: the slides with a webcam inset, and live runs of the demo including factorial (DEMO-10). MP4 (H.264 video, AAC audio), 1280×720 |
+
 ## Requirements
 
 - Python 3.12 or later, because the supplied `lambda1_vp.py` uses `type`

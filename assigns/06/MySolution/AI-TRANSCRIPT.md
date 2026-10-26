@@ -3,6 +3,10 @@
 ## Tools used
 
 - Claude Code (command line), model Claude Opus 5.5 (`claude-opus-5-5`).
+- For the slides (stage 09): headless Google Chrome to print the HTML deck
+  to PDF, and Poppler's `pdftoppm` to render the pages for checking. The
+  finished recording was checked with short Swift scripts using Apple's
+  AVFoundation. None of these scripts is part of the submission.
 
 ## Stage log
 
@@ -16,6 +20,13 @@
 | 06 | Lambda Arcade command-line demo and saved terms | 163 |
 | 07 | Adversarial test audit | 171 |
 | 08 | `README.md`, `DESIGN.md`, this transcript | 171 |
+| 09 | Slide deck, speaker notes and recording checklist; slides and video added under `presentation/` | 171 |
+
+## Presentation
+
+Claude drafted the slide deck, timed speaker notes and a recording
+checklist outside this repository. I recorded and narrated the video
+myself; Claude did not generate any audio, video or images of me.
 
 ## Suggestions accepted
 
@@ -34,6 +45,9 @@ Claude proposed these and I kept them:
   library binder, so no source name is reserved.
 - The demo saves each full pure term under `MySolution/demo_terms/`, with
   default budgets set from measured needs.
+- The slide deck: an HTML source printed to a 12-page PDF, prediction
+  questions before results, real demo output on the slides, and the
+  bottom-right corner of every slide left empty for the webcam.
 
 ## Mistakes found and fixed
 
@@ -58,6 +72,11 @@ Claude proposed these and I kept them:
   large step count was relaxed, as the pack advises.
 - Stage 08: the first `DESIGN.md` draft had about 1,700 prose words; it was
   cut to under 1,500.
+- Stage 09: the first rendering of the slides broke code lines in the
+  middle of terms, turned `lam` into `LAM` in table headers, and used `H` on
+  one slide before defining it. All three were fixed before recording.
+- Final review: one sentence in `DESIGN.md` said "no beta reduction" where
+  "no eta reduction" was meant; it was corrected.
 
 ## Testing actually done
 
@@ -73,3 +92,7 @@ Claude proposed these and I kept them:
   - Stage 07: 7 bugs, all caught.
 - `python3 -m MySolution.demo` passed all 14 examples with exit status 0,
   and the four-example short route passed 4 of 4.
+- Presentation: every page of `slides.pdf` was checked as a rendered image.
+  The final video was decoded from start to end: 28 minutes 25 seconds,
+  1280×720, with audio throughout. Sampled frames show the webcam inset and
+  readable slide and terminal text, including the live factorial run.
