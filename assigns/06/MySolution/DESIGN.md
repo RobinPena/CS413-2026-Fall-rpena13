@@ -1,6 +1,6 @@
 # Design: Compiling LAMBDA to Pure Lambda Calculus
 
-## 1. Two languages, one evaluator
+## 1. The Art of the Deal.
 
 The source language is the extended LAMBDA syntax from
 `assigns/05/lambda1_vp.py`, used unchanged: natural and boolean literals,
@@ -111,7 +111,7 @@ renames; renaming is tested directly on open terms.
 ## 5. Call-by-value, thunks and recursion
 
 Both languages use weak, left-to-right call-by-value: function, then
-argument, then contraction; nothing under a lambda; no eta reduction. Only
+argument, then contraction; nothing under a lambda; no beta reduction. Only
 contractions `(lam x. body) v` with `v` a lambda are counted.
 
 Because arguments are evaluated first, `TRUE C[e1] C[e2]` would run both
@@ -188,7 +188,7 @@ Proceeding by induction on source evaluation:
   itself. Each source call unrolls `fix` once and each target call unrolls
   `R` once, so the two stay related call by call.
 
-This is a sketch, not a formal proof. It does not claim full abstraction,
+This is a sketch, not a formal proof, as such it does not claim full abstraction,
 equality of functions, or general agreement on termination. Tests support
 it with explicit expected answers, source and target agreement over every
 constructor and operator, exhaustion where strictness requires it, and
@@ -197,8 +197,8 @@ tests only sample programs.
 
 ## 8. Tradeoffs and limitations
 
-Substitution-based evaluation mirrors the beta rule and lets one machine
-serve both languages without closures, at the cost of copying terms; cached
+Substitution-based evaluation mirrors the beta rule; It lets one machine
+serve both languages without closures at the cost of copying terms; cached
 free-variable sets let substitution skip unaffected subterms. Target
 operations use explicit stacks, so large terms and long runs never reach
 Python's recursion limit. The source visitors recurse through `accept`, so
