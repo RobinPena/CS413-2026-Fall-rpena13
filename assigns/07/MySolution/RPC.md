@@ -35,7 +35,11 @@ separate URLs.
   - A byte-order mark is rejected.
   - Invalid UTF-8 is rejected.
   - The non-standard constants `NaN`, `Infinity` and `-Infinity` are rejected.
-  - Any number too large for a 64-bit float (such as `1e400`) is rejected.
+  - Numbers that cannot be represented and echoed back are rejected. That
+    means a number too large for a 64-bit float (such as `1e400`), or an
+    integer with more than 4,300 digits (Python's default conversion limit).
+  - Arrays and objects nested too deeply for the decoder are rejected. The
+    limit depends on the decoder's stack, not on a fixed number.
   - If a member name repeats in one object, the last occurrence wins.
 
 ### HTTP status versus RPC outcome
@@ -210,7 +214,7 @@ API version of this contract.
 
 | Code | `message` | When | `data` |
 | --- | --- | --- | --- |
-| `-32700` | `Parse error` | The body is not valid UTF-8 JSON text. | `{"reason": "invalid_utf8"}`, `{"reason": "invalid_json", "line": L, "column": C}`, or `{"reason": "non_finite_number"}` |
+| `-32700` | `Parse error` | The body is not valid UTF-8 JSON text, or it holds a value the service cannot represent (§1). | `{"reason": "invalid_utf8"}`, `{"reason": "invalid_json", "line": L, "column": C}`, `{"reason": "unsupported_number"}`, or `{"reason": "nesting_too_deep"}` |
 | `-32600` | `Invalid Request` | Envelope check failed, empty batch, or batch too large. | `{"reason": R}`, plus `"limit"` for `batch_too_large` |
 | `-32601` | `Method not found` | Unknown method name. | none |
 | `-32602` | `Invalid params` | A parameter rule in §3 failed. | `{"param": P, "reason": R, ...}` (see below) |

@@ -147,7 +147,7 @@
       "type": "object",
       "required": ["reason"],
       "properties": {
-        "reason": {"enum": ["invalid_utf8", "invalid_json", "non_finite_number"]},
+        "reason": {"enum": ["invalid_utf8", "invalid_json", "unsupported_number", "nesting_too_deep"]},
         "line": {"type": "integer", "minimum": 1},
         "column": {"type": "integer", "minimum": 1}
       },

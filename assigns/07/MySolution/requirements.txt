@@ -1,0 +1,18 @@
+# Tested with Python 3.14.10. Install from assigns/07/:
+#   MySolution/.venv/bin/python -m pip install -r MySolution/requirements.txt
+
+# Direct dependencies
+Flask==3.1.3          # web framework (HTTP transport)
+jsonschema==4.26.0    # tests: validate responses against rpc.schema.json
+
+# Pinned transitive dependencies, as installed and tested
+attrs==26.1.0
+blinker==1.9.0
+click==8.5.1
+itsdangerous==2.2.0
+Jinja2==3.1.6
+jsonschema-specifications==2025.9.1
+MarkupSafe==3.0.4
+referencing==0.37.0
+rpds-py==2026.9.1
+Werkzeug==3.1.9
