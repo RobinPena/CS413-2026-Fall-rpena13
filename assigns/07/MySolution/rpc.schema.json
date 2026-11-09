@@ -1,0 +1,316 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LAMBDA3 JSON-RPC service, API 1.0",
+  "description": "Request and response bodies for POST /rpc. Use the entry points under $defs: RequestBody, EnvelopeRequest, MethodRequest, Call, Notification, ResponseBody, Response. RPC.md is authoritative for byte-counted limits and validation order.",
+  "$defs": {
+    "Id": {
+      "description": "A request id: string, number, or null. Booleans, objects and arrays are not ids.",
+      "type": ["string", "number", "null"]
+    },
+
+    "EnvelopeRequest": {
+      "description": "A structurally valid JSON-RPC 2.0 request (RPC.md section 2, step 1). Anything else gets -32600 with id null.",
+      "type": "object",
+      "required": ["jsonrpc", "method"],
+      "properties": {
+        "jsonrpc": {"const": "2.0"},
+        "method": {"type": "string"},
+        "params": {"type": ["object", "array"]},
+        "id": {"$ref": "#/$defs/Id"}
+      },
+      "additionalProperties": false
+    },
+    "Call": {
+      "description": "A request that expects a response: the id member is present (it may be null).",
+      "allOf": [{"$ref": "#/$defs/EnvelopeRequest"}],
+      "required": ["id"]
+    },
+    "Notification": {
+      "description": "A request without an id member. It never receives a response.",
+      "allOf": [{"$ref": "#/$defs/EnvelopeRequest"}],
+      "not": {"required": ["id"]}
+    },
+
+    "Source": {
+      "description": "LAMBDA3 source text. The real limit is 65,536 bytes of UTF-8, which JSON Schema cannot count; maxLength (characters) is only an upper bound. Must contain a non-whitespace character.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 65536,
+      "pattern": "\\S"
+    },
+    "HealthParams": {
+      "type": "object",
+      "maxProperties": 0
+    },
+    "SourceParams": {
+      "type": "object",
+      "required": ["source"],
+      "properties": {"source": {"$ref": "#/$defs/Source"}},
+      "additionalProperties": false
+    },
+    "CompileParams": {
+      "type": "object",
+      "required": ["source", "target"],
+      "properties": {
+        "source": {"$ref": "#/$defs/Source"},
+        "target": {"enum": ["python", "javascript"]}
+      },
+      "additionalProperties": false
+    },
+    "MethodRequest": {
+      "description": "An envelope that also names a method of this service with acceptable params (RPC.md section 2, steps 3-4).",
+      "allOf": [{"$ref": "#/$defs/EnvelopeRequest"}],
+      "required": ["params"],
+      "oneOf": [
+        {
+          "properties": {
+            "method": {"const": "service.health"},
+            "params": {"$ref": "#/$defs/HealthParams"}
+          }
+        },
+        {
+          "properties": {
+            "method": {"enum": ["lambda.typecheck", "lambda.interpret"]},
+            "params": {"$ref": "#/$defs/SourceParams"}
+          }
+        },
+        {
+          "properties": {
+            "method": {"const": "lambda.compile"},
+            "params": {"$ref": "#/$defs/CompileParams"}
+          }
+        }
+      ]
+    },
+    "RequestBody": {
+      "description": "A valid HTTP request body: one request, or a batch of 1 to 20 requests.",
+      "oneOf": [
+        {"$ref": "#/$defs/MethodRequest"},
+        {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 20,
+          "items": {"$ref": "#/$defs/MethodRequest"}
+        }
+      ]
+    },
+
+    "HealthResult": {
+      "type": "object",
+      "required": ["status", "version"],
+      "properties": {
+        "status": {"const": "ok"},
+        "version": {"const": "1.0"}
+      },
+      "additionalProperties": false
+    },
+    "TypecheckResult": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {"type": {"type": "string"}},
+      "additionalProperties": false
+    },
+    "InterpretResult": {
+      "type": "object",
+      "required": ["type", "value"],
+      "properties": {
+        "type": {"type": "string"},
+        "value": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "CompileResult": {
+      "type": "object",
+      "required": ["target", "code"],
+      "properties": {
+        "target": {"enum": ["python", "javascript"]},
+        "code": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    },
+    "Result": {
+      "anyOf": [
+        {"$ref": "#/$defs/HealthResult"},
+        {"$ref": "#/$defs/TypecheckResult"},
+        {"$ref": "#/$defs/InterpretResult"},
+        {"$ref": "#/$defs/CompileResult"}
+      ]
+    },
+
+    "Diagnostic": {
+      "description": "A LAMBDA3 message, at most 1,000 characters.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000
+    },
+    "ParseErrorData": {
+      "type": "object",
+      "required": ["reason"],
+      "properties": {
+        "reason": {"enum": ["invalid_utf8", "invalid_json", "non_finite_number"]},
+        "line": {"type": "integer", "minimum": 1},
+        "column": {"type": "integer", "minimum": 1}
+      },
+      "additionalProperties": false
+    },
+    "InvalidRequestData": {
+      "type": "object",
+      "required": ["reason"],
+      "properties": {
+        "reason": {
+          "enum": [
+            "not_an_object", "bad_jsonrpc", "bad_method", "bad_params",
+            "bad_id", "unexpected_member", "empty_batch", "batch_too_large"
+          ]
+        },
+        "limit": {"type": "integer", "minimum": 1}
+      },
+      "additionalProperties": false
+    },
+    "InvalidParamsData": {
+      "type": "object",
+      "required": ["param", "reason"],
+      "properties": {
+        "param": {"enum": ["source", "target", null]},
+        "reason": {
+          "enum": [
+            "params_required", "params_not_object", "unexpected_param",
+            "missing", "wrong_type", "invalid_text", "too_large", "blank",
+            "unsupported_target"
+          ]
+        },
+        "limit_bytes": {"type": "integer", "minimum": 1},
+        "size_bytes": {"type": "integer", "minimum": 0},
+        "allowed": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": false
+    },
+    "InternalErrorData": {
+      "type": "object",
+      "required": ["incident"],
+      "properties": {"incident": {"type": "string", "pattern": "^[0-9a-f]{12}$"}},
+      "additionalProperties": false
+    },
+    "SyntaxErrorData": {
+      "type": "object",
+      "required": ["diagnostic"],
+      "properties": {
+        "diagnostic": {"$ref": "#/$defs/Diagnostic"},
+        "line": {"type": "integer", "minimum": 1},
+        "column": {"type": "integer", "minimum": 1}
+      },
+      "additionalProperties": false
+    },
+    "DiagnosticData": {
+      "type": "object",
+      "required": ["diagnostic"],
+      "properties": {"diagnostic": {"$ref": "#/$defs/Diagnostic"}},
+      "additionalProperties": false
+    },
+    "TimeoutData": {
+      "type": "object",
+      "required": ["limit_seconds"],
+      "properties": {"limit_seconds": {"type": "number", "exclusiveMinimum": 0}},
+      "additionalProperties": false
+    },
+
+    "ErrorObject": {
+      "description": "A JSON-RPC error object. Each code fixes its message and data shape (RPC.md section 4).",
+      "type": "object",
+      "required": ["code", "message"],
+      "properties": {
+        "code": {
+          "type": "integer",
+          "enum": [-32700, -32600, -32601, -32602, -32603, -32010, -32011, -32012, -32013]
+        },
+        "message": {"type": "string"},
+        "data": true
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {"required": ["code"], "properties": {"code": {"const": -32700}}},
+          "then": {"required": ["data"], "properties": {"message": {"const": "Parse error"}, "data": {"$ref": "#/$defs/ParseErrorData"}}}
+        },
+        {
+          "if": {"required": ["code"], "properties": {"code": {"const": -32600}}},
+          "then": {"required": ["data"], "properties": {"message": {"const": "Invalid Request"}, "data": {"$ref": "#/$defs/InvalidRequestData"}}}
+        },
+        {
+          "if": {"required": ["code"], "properties": {"code": {"const": -32601}}},
+          "then": {"properties": {"message": {"const": "Method not found"}}, "not": {"required": ["data"]}}
+        },
+        {
+          "if": {"required": ["code"], "properties": {"code": {"const": -32602}}},
+          "then": {"required": ["data"], "properties": {"message": {"const": "Invalid params"}, "data": {"$ref": "#/$defs/InvalidParamsData"}}}
+        },
+        {
+          "if": {"required": ["code"], "properties": {"code": {"const": -32603}}},
+          "then": {"required": ["data"], "properties": {"message": {"const": "Internal error"}, "data": {"$ref": "#/$defs/InternalErrorData"}}}
+        },
+        {
+          "if": {"required": ["code"], "properties": {"code": {"const": -32010}}},
+          "then": {"required": ["data"], "properties": {"message": {"const": "LAMBDA syntax error"}, "data": {"$ref": "#/$defs/SyntaxErrorData"}}}
+        },
+        {
+          "if": {"required": ["code"], "properties": {"code": {"const": -32011}}},
+          "then": {"required": ["data"], "properties": {"message": {"const": "LAMBDA type error"}, "data": {"$ref": "#/$defs/DiagnosticData"}}}
+        },
+        {
+          "if": {"required": ["code"], "properties": {"code": {"const": -32012}}},
+          "then": {"required": ["data"], "properties": {"message": {"const": "Execution timed out"}, "data": {"$ref": "#/$defs/TimeoutData"}}}
+        },
+        {
+          "if": {"required": ["code"], "properties": {"code": {"const": -32013}}},
+          "then": {"required": ["data"], "properties": {"message": {"const": "LAMBDA runtime error"}, "data": {"$ref": "#/$defs/DiagnosticData"}}}
+        }
+      ]
+    },
+
+    "SuccessResponse": {
+      "type": "object",
+      "required": ["jsonrpc", "result", "id"],
+      "properties": {
+        "jsonrpc": {"const": "2.0"},
+        "result": {"$ref": "#/$defs/Result"},
+        "id": {"$ref": "#/$defs/Id"}
+      },
+      "additionalProperties": false
+    },
+    "ErrorResponse": {
+      "description": "Parse errors and invalid requests always carry id null.",
+      "type": "object",
+      "required": ["jsonrpc", "error", "id"],
+      "properties": {
+        "jsonrpc": {"const": "2.0"},
+        "error": {"$ref": "#/$defs/ErrorObject"},
+        "id": {"$ref": "#/$defs/Id"}
+      },
+      "additionalProperties": false,
+      "if": {
+        "required": ["error"],
+        "properties": {"error": {"required": ["code"], "properties": {"code": {"enum": [-32700, -32600]}}}}
+      },
+      "then": {"properties": {"id": {"type": "null"}}}
+    },
+    "Response": {
+      "description": "Exactly one of SuccessResponse and ErrorResponse; neither admits extra members, so result and error never appear together.",
+      "oneOf": [
+        {"$ref": "#/$defs/SuccessResponse"},
+        {"$ref": "#/$defs/ErrorResponse"}
+      ]
+    },
+    "ResponseBody": {
+      "description": "An HTTP 200 body: one response object, or an array of 1 to 20 response objects. HTTP 204 has no body.",
+      "oneOf": [
+        {"$ref": "#/$defs/Response"},
+        {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 20,
+          "items": {"$ref": "#/$defs/Response"}
+        }
+      ]
+    }
+  }
+}
