@@ -219,7 +219,7 @@ API version of this contract.
 | `-32601` | `Method not found` | Unknown method name. | none |
 | `-32602` | `Invalid params` | A parameter rule in §3 failed. | `{"param": P, "reason": R, ...}` (see below) |
 | `-32603` | `Internal error` | An unexpected failure: a bug, a worker crash, or an exception that LAMBDA3 errors don't explain. | `{"incident": "<12 hex digits>"}` |
-| `-32010` | `LAMBDA syntax error` | Parsing failed (`LambdaSyntaxError`), or the source is nested too deeply to parse. | `{"diagnostic": D, "line": L, "column": C}`; `line` and `column` are left out when unknown |
+| `-32010` | `LAMBDA syntax error` | Parsing failed (`LambdaSyntaxError`), the source is nested too deeply to parse, or an integer literal has more than 4,300 digits. | `{"diagnostic": D, "line": L, "column": C}`; `line` and `column` are left out when unknown |
 | `-32011` | `LAMBDA type error` | Type checking failed (`TypeCheckError`), including an **unbound variable**, or the source is nested too deeply to type-check. | `{"diagnostic": D}` |
 | `-32012` | `Execution timed out` | The deadline expired before the worker returned a result. | `{"limit_seconds": 2.0}` |
 | `-32013` | `LAMBDA runtime error` | Evaluation of a well-typed program failed. | `{"diagnostic": D}` |
@@ -261,6 +261,9 @@ rule out:
 - a negative array size
 - recursion deeper than Python's default recursion limit, which is
   unchanged. LAMBDA3 reaches it after roughly 140 nested LAMBDA calls.
+- an integer result with more than 4,300 digits, which cannot be formatted
+- running out of memory, when Python reports it as an error rather than the
+  operating system ending the worker (which gives `-32603`)
 
 These are mistakes in the client's program, not server faults, so they get a
 LAMBDA error code instead of `-32603`.
@@ -270,7 +273,17 @@ LAMBDA error code instead of `-32603`.
   evaluator's message for runtime errors.
   - A diagnostic longer than 1,000 characters is cut to 1,000 characters,
     ending in `...`.
-  - Recursion-limit failures use a fixed sentence instead of Python's message.
+  - Failures caused by Python's own limits get a fixed sentence instead of
+    Python's message:
+
+    | Failure | Code | `diagnostic` |
+    | --- | --- | --- |
+    | Too deeply nested to parse | `-32010` | `the program is nested too deeply to parse` |
+    | Integer literal too long | `-32010` | `an integer literal has more than 4,300 digits` |
+    | Too deeply nested to type-check | `-32011` | `the program is nested too deeply to type-check` |
+    | Recursion limit during evaluation | `-32013` | `recursion too deep: Python's recursion limit was reached` |
+    | Integer too long to format | `-32013` | `an integer has more than 4,300 digits and cannot be formatted` |
+    | Out of memory | `-32013` | `the program ran out of memory` |
 - Responses never contain tracebacks, Python exception class names,
   filesystem paths or internal object representations.
 - For `-32603`, the server logs the full details together with the `incident`

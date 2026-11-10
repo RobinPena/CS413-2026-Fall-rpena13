@@ -14,12 +14,22 @@ from pathlib import Path
 
 from jsonschema import Draft202012Validator
 
-from MySolution import create_app
+from MySolution.app import create_app
 
 SOLUTION_DIR = Path(__file__).resolve().parent.parent
 SCHEMA = json.loads((SOLUTION_DIR / "rpc.schema.json").read_text(encoding="utf-8"))
 
 ABSENT = object()  # marks a request member that is left out entirely
+
+# The factorial program from Assign07.md.
+FACTORIAL = """let fact : sint -> sint =
+  fix fact(n: sint): sint =>
+    if n <= 1 then 1 else n * fact(n - 1)
+in fact(6) end"""
+
+# Doubly recursive Fibonacci: terminates, but fib(26) takes about 11 s.
+FIB_26 = ("let fib : sint -> sint = fix fib(n: sint): sint => "
+          "if n < 2 then n else fib(n - 1) + fib(n - 2) in fib(26) end")
 
 
 def schema_validator(definition: str) -> Draft202012Validator:

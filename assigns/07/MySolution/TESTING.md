@@ -23,6 +23,7 @@ MySolution/.venv/bin/python -m pip install -r MySolution/requirements.txt
 MySolution/.venv/bin/python -m unittest discover -s MySolution/tests -t . -v
 
 # Start the service, then run the instructor's black-box suite from a second terminal
+# (options: --deadline SECONDS, default 2.0; --max-source-bytes N, default 65536)
 MySolution/.venv/bin/python -m MySolution --host 127.0.0.1 --port 8000
 python3 -m unittest discover -s TEST -v
 ```
@@ -66,22 +67,22 @@ Test names are `module.Class.method` under `MySolution/tests/`.
 
 ### Required behaviors (Assign07, Task 3)
 
-| # | Required behavior | Planned tests | Status |
+| # | Required behavior | Tests | Status |
 | --- | --- | --- | --- |
 | 1 | `service.health` returns status and API version and keeps the request id | `test_methods.HealthTests.test_health_result_and_id`, `test_envelope.IdTests.test_valid_ids_are_echoed_unchanged` | Passed |
-| 2 | Type-checking valid programs returns the formatted type | `test_methods.TypecheckTests.test_formatted_types` (`sint`, `sint -> sint`, a tuple, `List[sint]`, an unresolved `?t` variable) | Planned |
-| 3 | Interpreting arithmetic, factorial, a tuple and a collection gives the right value and type | `test_methods.InterpretTests.test_arithmetic`, `.test_factorial_720`, `.test_tuple`, `.test_list`, `.test_array_and_option`, `.test_library_list_length` (source built from `mylib/list.lam`) | Planned |
-| 4 | Python and JavaScript compilation return nonempty source and the right `target` | `test_methods.CompileTests.test_python_matches_compiler`, `.test_javascript_matches_compiler` (both equal the direct compiler output), `.test_fixtures_match_service`, `.test_compile_does_not_evaluate` (`1 / 0` compiles) | Planned |
-| 5 | Syntax errors and type errors have distinct documented codes | `test_language_errors.LanguageErrorTests.test_syntax_error_code_and_position`, `.test_type_error_code`, `.test_codes_are_distinct` | Planned |
-| 6 | Malformed JSON, invalid envelopes, unknown methods, absent or wrongly typed params, blank source and oversized source | `test_envelope.ParseErrorTests.*`, `test_envelope.InvalidRequestTests.*`, `test_envelope.MethodNotFoundTests.*`, `test_params.ParamsTests.*`, `test_params.SourceLimitTests.*` | Partly passed: parse errors, invalid envelopes, unknown methods, and absent, positional or scalar params pass. The `source` rules are planned. |
-| 7 | A function result is formatted without closure internals | `test_methods.InterpretTests.test_lam_value_formatted`, `.test_fix_value_formatted` | Planned |
-| 8 | An injected backend failure or timeout returns the documented error, keeps the id, and shows no traceback | `test_failures.FailureTests.test_worker_exception_is_internal_error`, `.test_worker_crash_is_internal_error`, `.test_blocking_worker_times_out_and_is_stopped`, `.test_slow_program_times_out`, `.test_service_recovers_after_timeout` | Planned |
-| 9 | LAMBDA3 type checking rejects an unbound variable | `test_language_errors.LanguageErrorTests.test_unbound_variable_rejected` | Planned |
+| 2 | Type-checking valid programs returns the formatted type | `test_methods.TypecheckTests.test_formatted_types` (`sint`, `bool`, a tuple, `List[sint]`, `sint -> sint`, an unresolved `?t0 -> ?t0`, the factorial program), `.test_typecheck_does_not_evaluate` | Passed |
+| 3 | Interpreting arithmetic, factorial, a tuple and a collection gives the right value and type | `test_methods.InterpretTests.test_arithmetic`, `.test_factorial` (720), `.test_tuple`, `.test_list`, `.test_array_and_option`, `.test_supplied_list_library` (source built from `mylib/list.lam`) | Passed |
+| 4 | Python and JavaScript compilation return nonempty source and the right `target` | `test_methods.CompileTests.test_code_is_the_unchanged_compiler_output` (equal to the fixtures, which hold the direct compiler output), `.test_both_targets_return_nonempty_programs`, `.test_compile_does_not_evaluate` (`1 / 0` and `fib(26)` compile), `.test_output_larger_than_a_pipe_buffer` | Passed |
+| 5 | Syntax errors and type errors have distinct documented codes | `test_language_errors.LanguageErrorTests.test_syntax_error_has_diagnostic_and_location`, `.test_type_error`, `.test_syntax_and_type_errors_have_distinct_codes` | Passed |
+| 6 | Malformed JSON, invalid envelopes, unknown methods, absent or wrongly typed params, blank source and oversized source | `test_envelope.ParseErrorTests.*`, `test_envelope.InvalidRequestTests.*`, `test_envelope.MethodNotFoundTests.*`, `test_params.ParamsTests.*`, `test_params.SourceParamsTests.*`, `test_params.TargetParamsTests.*`, `test_params.SourceLimitTests.*` | Passed |
+| 7 | A function result is formatted without closure internals | `test_methods.InterpretTests.test_function_values_are_formatted_without_internals` (`<lam>`, `<fix>`) | Passed |
+| 8 | An injected backend failure or timeout returns the documented error, keeps the id, and shows no traceback | `test_failures.BackendExceptionTests.test_unexpected_backend_exception_in_the_worker`, `test_failures.CrashedWorkerTests.test_worker_that_exits_without_an_outcome`, `test_failures.HungWorkerTests.test_hung_worker_is_killed_and_the_call_times_out`, `test_failures.TimeoutTests.test_slow_interpretation_times_out`, `.test_service_answers_after_a_timeout` | Passed |
+| 9 | LAMBDA3 type checking rejects an unbound variable | `test_language_errors.LanguageErrorTests.test_unbound_variable_is_a_type_error` | Passed |
 | 10 | Batches keep IDs and omit notifications; invalid members get `id: null`; a notification-only batch and a single notification get 204 with an empty body; an empty batch gets one Invalid Request object | `test_batches.BatchTests.*`, `test_batches.BatchProcessingTests.*`, `test_envelope.NotificationTests.test_single_notification_is_204_empty`, `test_transport.TransportTests.test_notification_is_204_with_zero_byte_body` | Passed |
 
 ### Contract details (`RPC.md`)
 
-| Behavior | `RPC.md` | Planned tests | Status |
+| Behavior | `RPC.md` | Tests | Status |
 | --- | --- | --- | --- |
 | 404 / 405 (with `Allow: POST`) / 415 / 413 in that order; text bodies on transport errors; JSON media type on 200; zero-byte 204 with no `Content-Type` | §1 | `test_transport.TransportTests.*` | Passed |
 | Parse errors: truncated JSON, invalid UTF-8, BOM, `NaN`/`Infinity`, `1e400`, a 4,301-digit integer, deeply nested arrays, empty body | §1, §4 | `test_envelope.ParseErrorTests.*` | Passed |
@@ -89,13 +90,15 @@ Test names are `module.Class.method` under `MySolution/tests/`.
 | IDs `""`, `0`, negative, fractional, large integer (up to 4,300 digits) and explicit `null` are echoed with the same JSON type; boolean, object and array IDs are rejected | §2 | `test_envelope.IdTests.*` | Passed |
 | Notifications are processed; with an unknown method, bad params, a documented error or an internal error they still produce no response | §2 | `test_envelope.NotificationTests.*` | Passed |
 | Dispatcher boundary: params passed through as sent; a documented error from a method keeps the id and data | §2, §4 | `test_envelope.DispatchBoundaryTests.*` (test double for the method table) | Passed |
-| Params: missing, positional and scalar `params`; unexpected keys; `service.health` with members; `target` missing, wrong type or wrong case | §3 | `test_params.ParamsTests.*`, `test_envelope.InvalidRequestTests.test_bad_params` | Partly passed: the `service.health` and envelope cases pass. The `target` rules are planned. |
-| Source limit boundaries: 65,536 vs 65,537 ASCII bytes; a 2-byte character pushing past the limit; unpaired surrogate; whitespace only | §3, §5 | `test_params.SourceLimitTests.*` | Planned |
-| Runtime errors get `-32013` (division by zero, empty-list head, array index) | §4 | `test_language_errors.LanguageErrorTests.test_runtime_errors` | Planned |
-| Too-deep nesting gives `-32010`; too-deep recursion gives `-32013`; neither is reported as a timeout | §4 | `test_language_errors.LanguageErrorTests.test_deep_nesting_is_syntax_error`, `.test_deep_recursion_is_runtime_error` | Planned |
-| Diagnostics are capped at 1,000 characters | §4 | `test_language_errors.LanguageErrorTests.test_long_diagnostic_is_truncated` | Planned |
-| Internal errors log details under the `incident` value and keep them out of the response | §4 | `test_envelope.DispatchBoundaryTests.test_unexpected_exception_is_logged_not_returned` (dispatcher), `test_failures.FailureTests.test_internal_error_is_logged_not_returned` (worker) | Partly passed: the dispatcher case passes. The worker case is planned. |
-| Output from `print` is discarded; only the value is returned | §3 | `test_methods.InterpretTests.test_print_output_discarded` | Planned |
+| Params: missing, positional and scalar `params`; unexpected keys for every method; `source` missing, wrong type, unpaired surrogate or blank; `source` checked before `target`; `target` missing, wrong type or wrong case | §3 | `test_params.ParamsTests.*`, `test_params.SourceParamsTests.*`, `test_params.TargetParamsTests.*`, `test_envelope.InvalidRequestTests.test_bad_params` | Passed |
+| Source limit: 65,536 bytes accepted and 65,537 rejected; 2-byte characters counted as bytes, at and past the limit; size checked before blankness; the limit taken from the app config | §3, §5 | `test_params.SourceLimitTests.*`, `test_params.ConfiguredSourceLimitTests.*` | Passed |
+| A source reaches LAMBDA3 unchanged: no trimming, so syntax-error positions count the original text | §3 | `test_methods.InterpretTests.test_source_is_used_unchanged`, `test_language_errors.LanguageErrorTests.test_syntax_error_location_counts_the_unchanged_source` | Passed |
+| Runtime errors get `-32013`: division by zero, empty-list head, empty option, array index, negative array size, an integer too long to format | §4 | `test_language_errors.LanguageErrorTests.test_runtime_errors`, `.test_integer_too_long_to_format_is_a_runtime_error` | Passed |
+| Python's limits get fixed diagnostics: nesting too deep for the parser (`-32010`) or the type checker (`-32011`), an overlong integer literal (`-32010`), recursion too deep at run time (`-32013`); none is reported as a timeout | §4 | `test_language_errors.LanguageErrorTests.test_too_deeply_nested_source_is_a_syntax_error`, `.test_too_deeply_nested_for_the_type_checker_is_a_type_error`, `.test_overlong_integer_literal_is_a_syntax_error`, `.test_recursion_limit_is_a_runtime_error` | Passed |
+| Diagnostics are capped at 1,000 characters | §4 | `test_language_errors.LanguageErrorTests.test_long_diagnostic_is_cut_to_1000_characters` | Passed |
+| Internal errors log details under the `incident` value and keep them out of the response | §4 | `test_envelope.DispatchBoundaryTests.test_unexpected_exception_is_logged_not_returned` (dispatcher), `test_failures.CrashedWorkerTests.*` and `test_failures.BackendExceptionTests.*` (worker; the failure is injected inside the spawned process) | Passed |
+| Deadline: a slow program and an exponential type check both get `-32012` after the deadline; a worker that ignores SIGTERM is killed and reaped; the deadline is taken from the app config; a notification runs under the same deadline; the service answers normally after a timeout | §5 | `test_failures.TimeoutTests.*`, `test_failures.ConfiguredDeadlineTests.*`, `test_failures.HungWorkerTests.*` | Passed |
+| Output from `print` is discarded (the worker's inherited standard output is captured and checked); only the value is returned | §3 | `test_methods.InterpretTests.test_print_output_is_discarded` | Passed |
 | Batch edge cases: 20 members accepted; 21 rejected with nothing run; duplicate IDs both answered; nested-array and scalar members; members run in order; one member's failure doesn't affect the others | §6 | `test_batches.BatchTests.*`, `test_batches.BatchProcessingTests.*` | Passed |
 | The schema is valid; the fixtures and every `RPC.md` response validate; the invalid `RPC.md` requests are rejected; result+error is rejected | §8 | `test_schema.SchemaTests.*` | Passed |
 | Every `RPC.md` §7 exchange gives the documented status and body | §7 | `test_examples.RpcMdExampleTests.test_documented_exchanges` | Planned |
@@ -105,16 +108,16 @@ Test names are `module.Class.method` under `MySolution/tests/`.
 | Test | Status (2026-11-09) |
 | --- | --- |
 | `test_health` | Passed |
-| `test_typecheck_arithmetic` | Failed: calls a `lambda.*` method, which the service did not yet serve (`-32601`) |
-| `test_interpret_arithmetic` | Failed: calls a `lambda.*` method, which the service did not yet serve (`-32601`) |
-| `test_interpret_tuple` | Failed: calls a `lambda.*` method, which the service did not yet serve (`-32601`) |
-| `test_interpret_list` | Failed: calls a `lambda.*` method, which the service did not yet serve (`-32601`) |
-| `test_interpret_function_formats_closure` | Failed: calls a `lambda.*` method, which the service did not yet serve (`-32601`) |
-| `test_compile_python_and_javascript` | Failed: calls a `lambda.*` method, which the service did not yet serve (`-32601`) |
-| `test_language_syntax_and_type_errors_are_distinct` | Failed: calls a `lambda.*` method, which the service did not yet serve (`-32601`) |
-| `test_invalid_params_and_unknown_method` | Failed: calls a `lambda.*` method, which the service did not yet serve (`-32601`) |
+| `test_typecheck_arithmetic` | Passed |
+| `test_interpret_arithmetic` | Passed |
+| `test_interpret_tuple` | Passed |
+| `test_interpret_list` | Passed |
+| `test_interpret_function_formats_closure` | Passed |
+| `test_compile_python_and_javascript` | Passed |
+| `test_language_syntax_and_type_errors_are_distinct` | Passed |
+| `test_invalid_params_and_unknown_method` | Passed |
 | `test_malformed_json_returns_parse_error` | Passed |
-| `test_batch_matches_by_id_and_omits_notification` | Failed: calls a `lambda.*` method, which the service did not yet serve (`-32601`) |
+| `test_batch_matches_by_id_and_omits_notification` | Passed |
 | `test_notification_only_batch_has_no_response` | Passed |
 | `test_notification_has_no_response` | Passed |
 | `test_invalid_request_and_empty_batch` | Passed |
@@ -124,6 +127,44 @@ Test names are `module.Class.method` under `MySolution/tests/`.
 
 Environment: macOS, Python 3.14.10, Flask 3.1.3, Werkzeug 3.1.9,
 jsonschema 4.26.0.
+
+**2026-11-09: all four methods, with the real LAMBDA3 in worker processes**
+
+- **Local suite:** `MySolution/.venv/bin/python -m unittest discover -s
+  MySolution/tests -t . -v` ran 113 tests in about 13 s, all OK. Most of that
+  time is spent waiting out deadlines: four real timeouts, and two forced
+  kills of a worker that ignores SIGTERM.
+- **Mutation check:** each deliberate bug below was written into a copy of
+  `MySolution/` on disk, so the spawned workers ran it too, and the full
+  suite was run against that copy. The unmodified copy passed, and every bug
+  was caught. Each bullet gives the failure count unittest reported (failing
+  subtests count separately).
+  - Diagnostics not cut to 1,000 characters: 1.
+  - A type-checker overflow reported as a syntax error: 1.
+  - The parent keeping its copy of the pipe's write end open (a crashed
+    worker then looks like a timeout): 1.
+  - Terminating a worker without the kill that follows: the suite hung and
+    was stopped after 90 s, because the worker that ignores SIGTERM stayed
+    alive.
+  - A deadline three times too long: 2.
+  - Stripping whitespace from the compiler output: 3.
+  - `ValueError` from the evaluator treated as an internal error: 4.
+  - Counting the source limit in characters instead of bytes: 1.
+  - Comparing `target` without regard to case: 2.
+  - Not discarding `print` output: 1.
+- **Live server:** `python -m MySolution --host 127.0.0.1 --port 8000`.
+  - The factorial program returned `{"type": "sint", "value": "720"}` in
+    0.08 s.
+  - `missing_name + 1` returned `-32011` with
+    `unbound variable 'missing_name'`.
+  - `fib(26)` returned `-32012` after 2.00 s.
+  - The JavaScript compile response for `1 + 2` equalled
+    `examples/compile-javascript-response.json` exactly.
+  - The server log had no errors.
+  - `--deadline 0` and `--max-source-bytes nan` were rejected at startup.
+- **Instructor suite** (`python -m unittest discover -s TEST -v`, against
+  that server): all 15 passed. The server was stopped afterwards, and no
+  `__pycache__` was left in `../LAMBDA3/`.
 
 **2026-11-09: protocol and transport, with `service.health` as the only real
 method**
