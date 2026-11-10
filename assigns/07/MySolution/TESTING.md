@@ -3,12 +3,8 @@
 This file maps each required behavior to the tests that check it, and records
 observed results. The contract being tested is [`RPC.md`](RPC.md).
 
-**Status:**
-- **Passed** rows were run on 2026-11-09 with the commands below.
-- **Planned** rows have no test yet. Their test names are the intended
-  names.
-- **Partly passed** rows have some of their checks written and passing,
-  while the rest are still planned.
+**Status:** every row below was last run on 2026-11-10 with the commands
+below, and every row passed.
 
 ## Commands
 
@@ -26,6 +22,9 @@ MySolution/.venv/bin/python -m unittest discover -s MySolution/tests -t . -v
 # (options: --deadline SECONDS, default 2.0; --max-source-bytes N, default 65536)
 MySolution/.venv/bin/python -m MySolution --host 127.0.0.1 --port 8000
 python3 -m unittest discover -s TEST -v
+
+# The same suite against a server on another port
+LAMBDA_RPC_URL=http://127.0.0.1:9000/rpc python3 -m unittest discover -s TEST -v
 ```
 
 The two suites complement each other. The instructor suite (`../TEST/`) checks
@@ -72,11 +71,11 @@ Test names are `module.Class.method` under `MySolution/tests/`.
 | 1 | `service.health` returns status and API version and keeps the request id | `test_methods.HealthTests.test_health_result_and_id`, `test_envelope.IdTests.test_valid_ids_are_echoed_unchanged` | Passed |
 | 2 | Type-checking valid programs returns the formatted type | `test_methods.TypecheckTests.test_formatted_types` (`sint`, `bool`, a tuple, `List[sint]`, `sint -> sint`, an unresolved `?t0 -> ?t0`, the factorial program), `.test_typecheck_does_not_evaluate` | Passed |
 | 3 | Interpreting arithmetic, factorial, a tuple and a collection gives the right value and type | `test_methods.InterpretTests.test_arithmetic`, `.test_factorial` (720), `.test_tuple`, `.test_list`, `.test_array_and_option`, `.test_supplied_list_library` (source built from `mylib/list.lam`) | Passed |
-| 4 | Python and JavaScript compilation return nonempty source and the right `target` | `test_methods.CompileTests.test_code_is_the_unchanged_compiler_output` (equal to the fixtures, which hold the direct compiler output), `.test_both_targets_return_nonempty_programs`, `.test_compile_does_not_evaluate` (`1 / 0` and `fib(26)` compile), `.test_output_larger_than_a_pipe_buffer` | Passed |
+| 4 | Python and JavaScript compilation return nonempty source and the right `target` | `test_methods.CompileTests.test_code_is_the_unchanged_compiler_output` (four programs, both targets, each equal to the output of LAMBDA3's compiler called directly in a separate Python process), `.test_both_targets_return_nonempty_programs`, `.test_compile_does_not_evaluate` (`1 / 0` and `fib(26)` compile), `.test_output_larger_than_a_pipe_buffer` | Passed |
 | 5 | Syntax errors and type errors have distinct documented codes | `test_language_errors.LanguageErrorTests.test_syntax_error_has_diagnostic_and_location`, `.test_type_error`, `.test_syntax_and_type_errors_have_distinct_codes` | Passed |
 | 6 | Malformed JSON, invalid envelopes, unknown methods, absent or wrongly typed params, blank source and oversized source | `test_envelope.ParseErrorTests.*`, `test_envelope.InvalidRequestTests.*`, `test_envelope.MethodNotFoundTests.*`, `test_params.ParamsTests.*`, `test_params.SourceParamsTests.*`, `test_params.TargetParamsTests.*`, `test_params.SourceLimitTests.*` | Passed |
 | 7 | A function result is formatted without closure internals | `test_methods.InterpretTests.test_function_values_are_formatted_without_internals` (`<lam>`, `<fix>`) | Passed |
-| 8 | An injected backend failure or timeout returns the documented error, keeps the id, and shows no traceback | `test_failures.BackendExceptionTests.test_unexpected_backend_exception_in_the_worker`, `test_failures.CrashedWorkerTests.test_worker_that_exits_without_an_outcome`, `test_failures.HungWorkerTests.test_hung_worker_is_killed_and_the_call_times_out`, `test_failures.TimeoutTests.test_slow_interpretation_times_out`, `.test_service_answers_after_a_timeout` | Passed |
+| 8 | An injected backend failure or timeout returns the documented error, keeps the id, and shows no traceback | `test_failures.BackendExceptionTests.test_unexpected_backend_exception_in_the_worker`, `test_failures.CrashedWorkerTests.test_worker_that_exits_without_an_outcome` (both: `-32603` with the id, and the response has no `Traceback`, no injected exception name or message, no `.py` file name and no `/Users` path), `test_failures.HungWorkerTests.test_hung_worker_is_killed_and_the_call_times_out`, `test_failures.TimeoutTests.test_slow_interpretation_times_out`, `.test_service_answers_after_a_timeout` | Passed |
 | 9 | LAMBDA3 type checking rejects an unbound variable | `test_language_errors.LanguageErrorTests.test_unbound_variable_is_a_type_error` | Passed |
 | 10 | Batches keep IDs and omit notifications; invalid members get `id: null`; a notification-only batch and a single notification get 204 with an empty body; an empty batch gets one Invalid Request object | `test_batches.BatchTests.*`, `test_batches.BatchProcessingTests.*`, `test_envelope.NotificationTests.test_single_notification_is_204_empty`, `test_transport.TransportTests.test_notification_is_204_with_zero_byte_body` | Passed |
 
@@ -101,11 +100,11 @@ Test names are `module.Class.method` under `MySolution/tests/`.
 | Output from `print` is discarded (the worker's inherited standard output is captured and checked); only the value is returned | §3 | `test_methods.InterpretTests.test_print_output_is_discarded` | Passed |
 | Batch edge cases: 20 members accepted; 21 rejected with nothing run; duplicate IDs both answered; nested-array and scalar members; members run in order; one member's failure doesn't affect the others | §6 | `test_batches.BatchTests.*`, `test_batches.BatchProcessingTests.*` | Passed |
 | The schema is valid; the fixtures and every `RPC.md` response validate; the invalid `RPC.md` requests are rejected; result+error is rejected | §8 | `test_schema.SchemaTests.*` | Passed |
-| Every `RPC.md` §7 exchange gives the documented status and body | §7 | `test_examples.RpcMdExampleTests.test_documented_exchanges` | Planned |
+| Every `RPC.md` §7 exchange gives the documented status and body: all 19 examples are read from `RPC.md` itself and replayed. Bodies are compared with `1`, `1.0` and `true` kept distinct, batch entries are matched in any order, and the two abbreviated compile responses are compared with their `examples/` files and documented lengths | §7 | `test_examples.RpcMdExampleTests.test_documented_exchanges` | Passed |
 
 ### Instructor black-box suite (`../TEST/test_rpc_api.py`, unchanged, against a live server)
 
-| Test | Status (2026-11-09) |
+| Test | Status (2026-11-10) |
 | --- | --- |
 | `test_health` | Passed |
 | `test_typecheck_arithmetic` | Passed |
@@ -127,6 +126,36 @@ Test names are `module.Class.method` under `MySolution/tests/`.
 
 Environment: macOS, Python 3.14.10, Flask 3.1.3, Werkzeug 3.1.9,
 jsonschema 4.26.0.
+
+**2026-11-10: acceptance run, with the `RPC.md` examples replayed**
+
+- **Local suite:** `MySolution/.venv/bin/python -m unittest discover -s
+  MySolution/tests -t . -v` ran 114 tests in about 17 s, all OK. The new
+  tests are the `RPC.md` §7 replay, which includes one real 2-second timeout,
+  and the comparison of compiled code with LAMBDA3's compiler called directly.
+- **Mutation check of the new tests:** each change below was made in a copy
+  of `MySolution/`, and `test_examples` and `test_methods` were run against
+  it. The unchanged copy passed, and every change was caught.
+  - `RPC.md` documenting factorial as `721`: 1 failure.
+  - `RPC.md` giving the Python code's length as 4,870 characters: 1.
+  - `RPC.md` giving the syntax error's column as 5: 1.
+  - The `### 7.19` heading losing its number: 1.
+  - The timeout's `limit_seconds` sent as the integer `2` instead of `2.0`:
+    1. Only the replay catches this, because it compares JSON text;
+    `test_failures` compares with `==`, where `2 == 2.0`.
+  - Whitespace stripped from the compiler output: 11, counting subtests.
+- **Instructor suite, unchanged, against a live server:**
+  - The server was started with `MySolution/.venv/bin/python -m MySolution
+    --host 127.0.0.1 --port 8000`. A `service.health` call was polled until
+    it answered, and then `python3 -m unittest discover -s TEST -v` passed
+    all 15 tests in 0.89 s.
+  - With that server stopped, a second server on port 9000 was tested with
+    `LAMBDA_RPC_URL=http://127.0.0.1:9000/rpc python3 -m unittest discover
+    -s TEST -v`. All 15 passed, so the suite really did use the URL from
+    `LAMBDA_RPC_URL`.
+  - Neither server logged an error. Both were stopped afterwards, and no
+    server or worker process was left running. `../LAMBDA3/` has no
+    `__pycache__`.
 
 **2026-11-09: all four methods, with the real LAMBDA3 in worker processes**
 

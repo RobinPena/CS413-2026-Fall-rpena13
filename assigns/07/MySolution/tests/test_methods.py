@@ -5,6 +5,8 @@ LAMBDA3; nothing is replaced by a test double.
 """
 import json
 import os
+import subprocess
+import sys
 import tempfile
 
 from MySolution.tests.support import FACTORIAL, FIB_26, SOLUTION_DIR, RpcTestCase
@@ -16,6 +18,22 @@ def library_program(name: str, body: str) -> str:
     """A source that declares a supplied library from mylib/ and then runs body."""
     declarations = (LAMBDA3_DIR / "mylib" / f"{name}.lam").read_text(encoding="utf-8")
     return f"let\n{declarations}\nin {body} end"
+
+
+def direct_compile(sources: list[str]) -> list[dict[str, str]]:
+    """{target: code} for each source, from LAMBDA3 called directly in a separate process."""
+    script = (
+        "import json, sys\n"
+        "sys.path.insert(0, sys.argv[1])\n"
+        "import lambda3\n"
+        "expressions = [lambda3.d0exp_parse_and_typecheck(s)[0] for s in json.load(sys.stdin)]\n"
+        "json.dump([{'python': lambda3.d0exp_compile(e), 'javascript': lambda3.d0exp_compile_js(e)}\n"
+        "           for e in expressions], sys.stdout)\n"
+    )
+    # -B: write no __pycache__ into LAMBDA3; -I: ignore the environment and this directory.
+    completed = subprocess.run([sys.executable, "-I", "-B", "-c", script, str(LAMBDA3_DIR)],
+                               input=json.dumps(sources), capture_output=True, encoding="utf-8", check=True)
+    return json.loads(completed.stdout)
 
 
 class HealthTests(RpcTestCase):
@@ -109,12 +127,12 @@ class CompileTests(RpcTestCase):
         return self.assert_result(self.call("lambda.compile", params, request_id), request_id)
 
     def test_code_is_the_unchanged_compiler_output(self):
-        # The fixtures hold the exact strings d0exp_compile and d0exp_compile_js return.
-        for target in ("python", "javascript"):
-            with self.subTest(target=target):
-                fixture = json.loads((SOLUTION_DIR / "examples" / f"compile-{target}-response.json").read_text())
-                result = self.compile("1 + 2", target, fixture["id"])
-                self.assertEqual(result, fixture["result"])
+        sources = ["1 + 2", FACTORIAL, "(1, list_cons(true, list_nil()))",
+                   library_program("list", "list_length(list_range(0, 3))")]
+        for source, direct in zip(sources, direct_compile(sources), strict=True):
+            for target in ("python", "javascript"):
+                with self.subTest(source=source[:30], target=target):
+                    self.assertEqual(self.compile(source, target), {"target": target, "code": direct[target]})
 
     def test_both_targets_return_nonempty_programs(self):
         for target, entry in (("python", "def _lambda_main():"), ("javascript", "function _lambda_main() {")):
