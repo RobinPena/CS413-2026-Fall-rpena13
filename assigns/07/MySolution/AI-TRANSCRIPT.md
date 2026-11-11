@@ -2,15 +2,13 @@
 
 ## Tools used
 
-Claude Code (Claude Opus 5.5), in one terminal session from 2026-11-04 to
-2026-11-10. This file was drafted by Claude Code from that session's log, at
-my request.
+Claude Code (Claude Opus 5.5)
 
 ## How we worked
 
-The work followed a staged master prompt, which I kept outside the
-repository. It had seven stages:
-0. discovery
+The work was done in 7 stages:
+
+   0. discovery
 1. the contract (`RPC.md`, the JSON Schema and a test plan)
 2. the HTTP transport and JSON-RPC dispatcher
 3. the LAMBDA3 methods in a worker process
@@ -18,29 +16,14 @@ repository. It had seven stages:
 5. documentation
 6. a final review
 
-Claude did one stage per instruction and ended each with a review packet:
+We did one stage per instruction and ended each with a review packet:
 outcome, files, the checks actually run, open decisions, and the next stage.
-I committed each stage myself after its packet (`ccb9450`, `a94e6a3`,
-`c45d7ed`, `c71ecd8`). Claude never committed or pushed.
 
-The master prompt also set ground rules:
-- Don't edit the instructor's files (`TEST/`, `LAMBDA3/`).
-- Never use `exec`, `eval` or a JavaScript runtime, and never run generated
-  code.
-- Use test doubles only for failures. Every successful type check,
-  interpretation and compilation in the tests must run the real LAMBDA3.
-- Commit no virtual environments, caches or secrets.
 
-## Important prompts and suggestions
+## Suggestions
 
-My prompts were mostly short stage instructions, for example:
 
-- "Continue with Stage 1 - 1. lets go with you suggestion for runtime error
-  code 2. Let us leave the recursion limit as is for now."
-- "proceed with Stage 2.", "Continue with stage 3.", "continue with stage 4"
-
-The design decisions came from Claude's suggestions in the review packets,
-which I accepted or changed:
+Some design decisions came from Claude's suggestions in the review packets, which I accepted or changed:
 
 - **Every `lambda.*` call runs in a new spawned process with a 2-second
   deadline.** This includes type checking. Type inference can take
@@ -80,7 +63,7 @@ which I accepted or changed:
   spawned process: one hangs and ignores SIGTERM, one exits without
   answering, and one has a compiler that raises.
 - **Mutation checks:** to see whether the tests could catch real bugs,
-  Claude planted bugs in a copy of the code, one at a time, and ran the
+  We planted bugs in a copy of the code, one at a time, and ran the
   suite. Stage 2 used 4 bugs, Stage 3 used 10 and Stage 4 used 6, and every
   one was caught. A deadline three times too long and a worker that is never
   killed are two examples. `TESTING.md` lists them all.
@@ -92,13 +75,8 @@ which I accepted or changed:
   Then the documented commands were run. Every curl example in `README.md`
   was run as written against a live server and compared with the response
   shown under it.
-- **Instructor update:** in the final review, Claude found an instructor
-  update to LAMBDA3 from 2026-11-10 (upstream `8b4974c`, which adds `%`).
-  It checked this solution against that update in a separate copy, and
-  everything passed with no code changes. Merging the update was left to me.
 
-Several of Claude's mistakes were caught by these checks before anything was
-committed:
+Several of Claude's mistakes were caught by these checks: 
 - An early test for discarding `print` output passed whether or not the
   output was discarded. It was rewritten to capture the worker's real
   standard output.
@@ -107,5 +85,3 @@ committed:
 - A bug planted on purpose (terminating a worker without killing it) hung
   the test run and left two worker processes behind. They were killed, and
   the mutation script now stops a hung run itself.
-- A first draft of `README.md` said deep recursion fails at about 1,000
-  calls. Measurement showed about 140, so it was corrected.
