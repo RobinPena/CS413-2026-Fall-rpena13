@@ -302,8 +302,8 @@ LAMBDA error code instead of `-32603`.
 The source limit and the body limit are separate. A single request may carry a
 source of up to 65,536 bytes, and a batch may carry several, as long as the
 whole body stays within 1 MiB. The source limit leaves plenty of room for the
-standard libraries in `../LAMBDA3/mylib/`. All four together take 14,164 bytes
-when wrapped in `let … in … end`.
+standard libraries in `../LAMBDA3/mylib/`. All four together take under 17 KB
+when wrapped in `let … in … end`, about a quarter of the limit.
 
 **The deadline** is measured on a monotonic clock:
 - It starts when the worker process is started and ends when the parent

@@ -127,6 +127,46 @@ Test names are `module.Class.method` under `MySolution/tests/`.
 Environment: macOS, Python 3.14.10, Flask 3.1.3, Werkzeug 3.1.9,
 jsonschema 4.26.0.
 
+**2026-11-10: the documented workflow, from a clean copy**
+
+- **Setup:** `git archive HEAD assigns/07` was unpacked into an empty
+  directory, so nothing outside the committed files was used. The commands in
+  `README.md` then created a new virtual environment and installed
+  `requirements.txt`, which gave Flask 3.1.3, Werkzeug 3.1.9 and
+  jsonschema 4.26.0.
+- **Local suite:** the documented command ran 114 tests in 16.6 s, all OK.
+- **Instructor suite:** a server was started from that copy with the default
+  options, and the suite passed all 15 tests against it. The server log had
+  no errors, and no worker process was left afterwards.
+- **README examples:** after `README.md` was finished, a script ran each
+  `bash` block in its Examples section, exactly as written, against a server
+  with the default options. It compared each output with the block shown
+  below the command. JSON was compared as data, generated code by its
+  ending, and the notification by its status line and empty body.
+  - All 13 examples matched.
+  - The timeout example answered after 2.01 s.
+  - The service code was the same as in the clean copy; only the
+    documentation had changed.
+- **Recursion depth**, measured through the real worker: `fact(141)`
+  evaluates and `fact(142)` gets `-32013`. A plain counting recursion
+  reaches depth 140. This agrees with the "roughly 140 nested LAMBDA calls"
+  in `RPC.md` §4.
+- **Overlapping calls:** 8 `fib(26)` interpretations were sent to a live
+  server at the same time.
+  - Each got `-32012` after 2.005 to 2.008 s.
+  - No worker process was left afterwards.
+  - A factorial call made next returned `720`.
+- **The instructor's LAMBDA3 update of 2026-11-10** (upstream commit
+  `8b4974c`) adds a `%` operator, fixes the `mylib` test imports, and adds to
+  `a1sz.lam`. This solution's committed files were checked against that
+  LAMBDA3 in a separate copy, with no code changes:
+  - The local suite ran 114 tests, all OK, including the comparison with
+    LAMBDA3's compilers.
+  - The instructor suite passed all 15 against a live server.
+  - All four `mylib` library tests passed.
+  - Through the service, `7 % 3` gave `1` and `(0 - 7) % 3` gave `2`.
+    `1 % 0` gave `-32013`, and `true % 2` gave `-32011`.
+
 **2026-11-10: acceptance run, with the `RPC.md` examples replayed**
 
 - **Local suite:** `MySolution/.venv/bin/python -m unittest discover -s
@@ -221,9 +261,12 @@ method**
 These are in instructor-provided files. They are recorded here and left
 unchanged.
 
-- `../LAMBDA3/mylib/TEST/test_list_library.py` and `test_optn_library.py`
-  import `lambda2`, which this assignment does not supply. The other library
-  tests import `lambda3`.
+- In the LAMBDA3 this solution was developed against (as added on
+  2026-11-04 in upstream commit `50584a4`),
+  `../LAMBDA3/mylib/TEST/test_list_library.py` and
+  `test_optn_library.py` import `lambda2`, which this assignment does not
+  supply. The instructor's update of 2026-11-10 (upstream commit `8b4974c`)
+  changes them to import `lambda3`, and all four library tests then pass.
 - For some programs, LAMBDA3's type-error text names the two types in swapped
   roles. `1 + true` gives `+: expected bool, got sint`, and
   `if 1 then 2 else 3` gives `if condition: expected sint, got bool`. The
