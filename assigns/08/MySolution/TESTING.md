@@ -137,7 +137,9 @@ layer.
 | `NotificationTests.test_failing_notifications_return_204` | `tests/test_rpc.py` | An unknown method, invalid params or an unknown stream as a notification gives 204. |
 | `ErrorTests.test_stream_not_found_application_error` | `tests/test_rpc.py` | `-32020` for unknown, closed and expired IDs (expired via an injected clock). |
 | `ErrorTests.test_internal_error_is_sanitized` | `tests/test_rpc.py` | An injected exception gives `-32603` with only an incident ID: no traceback, path or Python type name. |
-| `TransportTests.test_media_type_and_method_checks` | `tests/test_rpc.py` | Wrong `Content-Type` gives 415, `GET /rpc` gives 405, and an oversized body gives 413, all as plain text. |
+| `ErrorTests.test_too_many_streams_application_error` | `tests/test_rpc.py` | The 65th open gets `-32021` with `data: {"limit": 64}`. |
+| `TransportTests.test_media_type_and_method_checks` | `tests/test_rpc.py` | A missing or wrong `Content-Type` gives 415, `GET`/`PUT`/`DELETE /rpc` give 405 with `Allow: POST`, and an unknown path gives 404, all as plain text. JSON in any letter case, with or without `charset=utf-8`, is accepted. |
+| `TransportTests.test_body_size_limit` | `tests/test_rpc.py` | A body of exactly 64 KiB is accepted; one byte more gives 413 as plain text. |
 | `TransportTests.test_static_client_is_served` | `tests/test_rpc.py` | `GET /` serves HTML and `GET /static/js/player.js` serves JavaScript. |
 
 ### R8. Parameter boundaries and `limit` (Assign08 #8)
@@ -155,7 +157,7 @@ layer.
 
 | Test | File | What it shows |
 | --- | --- | --- |
-| `FullFlowTests.test_size8_http_open_to_done` | `tests/test_http_flow.py` | `open`, then `next` with limit 32 until `done: true`: 33,589 events, 92 valid, distinct, ordered solutions, `done` once and last. |
+| `FullFlowTests.test_size8_http_open_to_done` | `tests/test_http_flow.py` | On a real local socket server: `open`, then `next` with limit 32 until `done: true`. 33,589 events in 1,050 requests, only the last one short; 92 valid, distinct solutions in reference order; `done` once and last; and the events equal the solver's own trace exactly. |
 | `FullFlowTests.test_repeated_terminal_reads_then_close` | `tests/test_http_flow.py` | Empty `done: true` reads repeat, then `close` gives `{"closed": true}`, then `-32020`. |
 
 ### R10. Browser client logic (Assign08 #10, automated part)
