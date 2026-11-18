@@ -1,0 +1,150 @@
+# N-Queens search in continuation-passing style, producing a lazy event stream.
+# Load with d0cls_parse and check with d0cls_typecheck (see lambda_adapter.py);
+# DESIGN.md sections 3 and 4 explain the conventions used here.
+#
+# Boards: List[sint] holding one column per filled row, NEWEST ROW FIRST, so a
+# board with k queens is [c(k-1), ..., c(0)]. Rows and columns start at 0.
+#
+# Events: E = (tag, column, row, board) with
+#   tag 0 try, 1 place, 2 reject, 3 backtrack, 4 solution, 5 done.
+# solution and done store column = row = -1; done stores the empty board.
+#
+# Streams: Strm[E] = Lazy[Stcn[E]]. LAMBDA3 has no type aliases, so E and
+# Strm[E] are written out in full below.
+#
+# Continuations (all produce the rest of the event stream):
+#   success   (List[sint], unit -> Strm[E]) -> Strm[E]   complete board + resume
+#   failure   unit -> Strm[E]                            row has no columns left
+#   safe      unit -> A                                  candidate is not attacked
+#   conflict  unit -> A                                  nearest attacker found
+
+########################################################################
+# Pure helpers: queen safety, extending a board, building events.
+
+# Do squares (row1, col1) and (row2, col2) share a row, a column, or a diagonal?
+queens_attacks : (sint, sint, sint, sint) -> bool =
+  lam (q: (sint, sint, sint, sint)) =>
+    let row1 = q.0; col1 = q.1; row2 = q.2; col2 = q.3 in
+      if row1 == row2 then true
+      else if col1 == col2 then true
+      else if row1 - row2 == col1 - col2 then true   # down-right: row - col equal
+      else row1 - row2 == col2 - col1                # down-left: row + col equal
+    end
+
+# Add a queen in the next row. Newest-first order makes this a single cons.
+queens_place : (sint, List[sint]) -> List[sint] =
+  lam (p: (sint, List[sint])) => list_cons(p.0, p.1)
+
+# Event constructors take (column, row, board).
+queens_ev_try : (sint, sint, List[sint]) -> (sint, sint, sint, List[sint]) =
+  lam (p: (sint, sint, List[sint])) => (0, p.0, p.1, p.2)
+
+queens_ev_place : (sint, sint, List[sint]) -> (sint, sint, sint, List[sint]) =
+  lam (p: (sint, sint, List[sint])) => (1, p.0, p.1, p.2)
+
+queens_ev_reject : (sint, sint, List[sint]) -> (sint, sint, sint, List[sint]) =
+  lam (p: (sint, sint, List[sint])) => (2, p.0, p.1, p.2)
+
+queens_ev_backtrack : (sint, sint, List[sint]) -> (sint, sint, sint, List[sint]) =
+  lam (p: (sint, sint, List[sint])) => (3, p.0, p.1, p.2)
+
+queens_ev_solution : List[sint] -> (sint, sint, sint, List[sint]) =
+  lam (board: List[sint]) => (4, -1, -1, board)
+
+queens_ev_done : unit -> (sint, sint, sint, List[sint]) =
+  lam (u: unit) => (5, -1, -1, list_nil())
+
+########################################################################
+# Lazy stream cells.
+
+queens_strm_nil[T] : unit -> Strm[T] =
+  lam (u: unit) => lazy_make(lam (v: unit) => stcn_nil())
+
+# emit(e, k): one cell holding e. Its tail thunk calls k only when the
+# consumer forces the tail; lazy_eval then unwraps the Strm that k returns.
+# Writing stcn_cons(e, k(())) instead would run k's search work while the
+# current cell is being built.
+queens_emit[T] : (T, unit -> Strm[T]) -> Strm[T] =
+  lam (p: (T, unit -> Strm[T])) =>
+    lazy_make(lam (u: unit) =>
+      stcn_cons(p.0, lazy_make(lam (v: unit) => lazy_eval(p.1(())))))
+
+########################################################################
+# CPS safety check over (row, column, distance, board, on_safe, on_conflict).
+# board holds the rows above `row`, newest first, so its head is the queen in
+# row (row - distance). Calls on_conflict at the nearest attacker and on_safe
+# once every earlier queen has been checked. Polymorphic in the answer type A.
+
+queens_check_safe[A] : (sint, sint, sint, List[sint], unit -> A, unit -> A) -> A =
+  fix check_safe(s: (sint, sint, sint, List[sint], unit -> A, unit -> A)): A =>
+    let row = s.0; column = s.1; distance = s.2; board = s.3;
+        on_safe = s.4; on_conflict = s.5
+    in
+      if list_nilq(board) then on_safe(())
+      else if queens_attacks(row, column, row - distance, list_head(board))
+           then on_conflict(())
+      else check_safe(row, column, distance + 1, list_tail(board),
+                      on_safe, on_conflict)
+    end
+
+########################################################################
+# CPS search over (n, row, column, board, sk, fk).
+# Invariant: board is a valid partial board for rows 0 .. row-1, and columns
+# 0 .. column-1 of `row` have already been explored for this board.
+# fix binds one function only, so this function also plays the role of
+# try_column: search(n, row, 0, ...) starts a row and column > 0 resumes it.
+
+queens_search : (sint, sint, sint, List[sint],
+                 (List[sint], unit -> Strm[(sint, sint, sint, List[sint])])
+                   -> Strm[(sint, sint, sint, List[sint])],
+                 unit -> Strm[(sint, sint, sint, List[sint])])
+                -> Strm[(sint, sint, sint, List[sint])] =
+  fix search(s: (sint, sint, sint, List[sint],
+                 (List[sint], unit -> Strm[(sint, sint, sint, List[sint])])
+                   -> Strm[(sint, sint, sint, List[sint])],
+                 unit -> Strm[(sint, sint, sint, List[sint])]))
+      : Strm[(sint, sint, sint, List[sint])] =>
+    let n = s.0; row = s.1; column = s.2; board = s.3; sk = s.4; fk = s.5 in
+      # Complete board: success, handing over fk as the way to resume.
+      if row == n then sk(board, fk)
+      # No candidates left in this row: failure.
+      else if column == n then fk(())
+      else queens_emit(queens_ev_try(column, row, board), lam (u: unit) =>
+        queens_check_safe(row, column, 1, board,
+          # on_safe: place the queen and search the next row. The child's
+          # failure continuation records the backtrack, then resumes this
+          # row at the next column.
+          lam (safe: unit) =>
+            let next : List[sint] = queens_place(column, board) in
+              queens_emit(queens_ev_place(column, row, next), lam (v: unit) =>
+                search(n, row + 1, 0, next, sk, lam (exhausted: unit) =>
+                  queens_emit(queens_ev_backtrack(column, row, board), lam (w: unit) =>
+                    search(n, row, column + 1, board, sk, fk))))
+            end,
+          # on_conflict: record the rejection, then try the next column.
+          lam (conflict: unit) =>
+            queens_emit(queens_ev_reject(column, row, board), lam (v: unit) =>
+              search(n, row, column + 1, board, sk, fk))))
+    end
+
+########################################################################
+# Root continuations and the stream factory.
+
+# Root success: emit the solution; its tail resumes the search.
+queens_on_solution : (List[sint], unit -> Strm[(sint, sint, sint, List[sint])])
+                     -> Strm[(sint, sint, sint, List[sint])] =
+  lam (p: (List[sint], unit -> Strm[(sint, sint, sint, List[sint])])) =>
+    queens_emit(queens_ev_solution(p.0), p.1)
+
+# Root failure: every column of row 0 is finished. done is the last event.
+queens_root_exhausted : unit -> Strm[(sint, sint, sint, List[sint])] =
+  lam (u: unit) =>
+    queens_emit(queens_ev_done(()), lam (v: unit) => queens_strm_nil(()))
+
+# Opening a stream does no search: the first call to queens_search waits
+# inside the thunk until the consumer forces the stream.
+queens_stream : sint -> Strm[(sint, sint, sint, List[sint])] =
+  lam (n: sint) =>
+    lazy_make(lam (u: unit) =>
+      lazy_eval(queens_search(n, 0, 0, list_nil(),
+                              queens_on_solution, queens_root_exhausted)))

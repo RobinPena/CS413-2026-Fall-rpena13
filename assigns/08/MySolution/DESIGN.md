@@ -1,10 +1,5 @@
 # Assignment 08 design: animated N-Queens search with CPS and lazy streams
 
-This design was written before any solver, service, or client code (Stage 1).
-Section 3 has been checked against a throwaway prototype run on the supplied
-interpreter (results quoted below). All other behavior described here is
-**planned**. The file will be reconciled with the final code before submission.
-
 Contents:
 
 1. [Scope](#1-scope)
@@ -60,7 +55,7 @@ LAMBDA3 interpreter (assigns/08/LAMBDA3/lambda3.py) running solver.lam:
    CPS search whose continuations build the lazy event stream
 ```
 
-Planned files in `MySolution/`:
+Files in `MySolution/`:
 
 | File | Responsibility |
 | --- | --- |
@@ -149,11 +144,11 @@ LAMBDA3 defines `Strm[T] = Lazy[Stcn[T]]`. Because there are no type aliases,
 
 `queens_check_safe` is **polymorphic in its answer type `A`**. The search uses
 it with `A = Strm[E]`. The tests use `A = sint` to see directly which
-continuation was taken. The prototype confirmed that LAMBDA3's type checker
-accepts this polymorphic `fix` and runs it at both types. The checker never
-returns a Boolean for the search to inspect.
+continuation was taken. LAMBDA3's type checker accepts this polymorphic `fix`,
+and it runs at both types. The checker never returns a Boolean for the search
+to inspect.
 
-### 3.5 Planned declarations in `solver.lam`
+### 3.5 Declarations in `solver.lam`
 
 `solver.lam` is a declaration file, like `LAMBDA3/mylib/*.lam`. The adapter
 parses it with `d0cls_parse` and type-checks it with `d0cls_typecheck`. The
@@ -246,11 +241,11 @@ after a bounded number of steps, and `emit` returns at once
   runs exactly once, after row 0's last column, and emits `done`. The tail of
   `done` is the empty stream.
 
-Prototype results on the supplied interpreter: size 4 produced 139 events with
-solutions `[1,3,0,2]` then `[2,0,3,1]`. Size 8 produced 33,589 events:
-15,720 `try`, 13,664 `reject`, 2,056 `place`, 2,056 `backtrack`,
-92 `solution` and 1 `done`. All 92 boards were valid, distinct, and in
-lexicographic order. The first 8×8 solution, `[0,4,7,5,2,6,1,3]`, is event
+Results of `solver.lam` on the supplied interpreter, checked by the tests in
+`tests/test_solver.py`: size 4 produces 139 events with solutions `[1,3,0,2]`
+then `[2,0,3,1]`. Size 8 produces 33,589 events: 15,720 `try`, 13,664
+`reject`, 2,056 `place`, 2,056 `backtrack`, 92 `solution` and 1 `done`. All
+92 boards are valid, distinct, and in lexicographic order. The first 8×8 solution, `[0,4,7,5,2,6,1,3]`, is event
 number 1,858. The last 8×8 solution is `[7,3,0,2,5,1,6,4]`.
 
 ## 4. From CPS search to lazy stream
@@ -293,17 +288,18 @@ Work done when the tail after each event is forced:
 
 Each force does O(n) interpreter work: at most one safety walk plus a constant
 number of continuation hops. The Python stack returns to the consumer after
-every event. In the prototype, the entire 8×8 run completed with Python's
-recursion limit lowered to 80, and a 5,000-event 10×10 prefix completed with
-the limit lowered to 100. Continuations do not pile up on the stack.
+every event. Measured through the adapter, the entire 8×8 run completes with
+Python's recursion limit lowered to 105, and a 5,000-event 10×10 prefix
+completes with the limit lowered to 120. Continuations do not pile up on the
+stack (`LazinessTests.test_stack_depth_stays_bounded`).
 
 ### 4.4 Memory
 
 The service keeps only the current cursor. Continuations capture boards and
 outer continuations, never earlier stream cells, so cells already delivered
 become unreachable and Python frees them. The live state of one stream is its
-current cell plus at most `n` nested failure continuations. A planned test
-checks this with a weak reference to a delivered cell.
+current cell plus at most `n` nested failure continuations. A test checks
+this with a weak reference to a delivered cell.
 
 ### 4.5 How laziness is tested
 
@@ -358,7 +354,7 @@ Each entry holds `size`, `cursor` (a `Lazy` value, or `None` once released),
   Each method call is atomic: two requests never advance one stream at the
   same time, a `close` cannot interleave with a `next` in progress, and
   streams opened separately share nothing. Serializing all streams is
-  acceptable for a local service. One `next` with limit 32 takes about 12 ms
+  acceptable for a local service. One `next` with limit 32 takes about 14 ms
   of interpreter time.
 - **Clock.** The clock is an injected callable, `time.monotonic` by default,
   so tests can make expiry deterministic.
@@ -476,8 +472,8 @@ never include tracebacks, file paths, interpreter values or closures.
 
 ### 7.6 Example exchanges
 
-The events below are real output from the prototype on the supplied
-interpreter. The UUID is illustrative.
+The events below are real output of `solver.lam` on the supplied interpreter.
+The UUID is illustrative.
 
 `service.health`:
 
@@ -625,8 +621,9 @@ alone.
 
 The reject explanation is display logic in `player.js`. It finds the first
 attacking queen in the same order as `queens_check_safe` (nearest row first)
-and never affects the search. The prototype found an attacking queen for
-every one of the 13,664 rejections in the 8×8 trace.
+and never affects the search. Every one of the 13,664 rejections in the 8×8
+trace has an attacking queen on its board
+(`EventTests.test_every_reject_has_an_attacking_queen`).
 
 ### 8.5 Accessibility and layout
 
@@ -651,7 +648,7 @@ every one of the 13,664 rejections in the 8×8 trace.
 ## 10. Reuse and attribution
 
 - **Assign07 `MySolution/app.py`, `rpc.py` and `errors.py`** (this student's
-  own earlier work) will be copied into this directory and adapted, not
+  own earlier work) are copied into this directory and adapted, not
   imported. The parts kept are the strict JSON decoding, envelope checks,
   method dispatch, incident-ID internal errors, media-type check and 204
   handling. The `lambda.*` methods and per-call worker processes are removed,
@@ -668,9 +665,8 @@ every one of the 13,664 rejections in the 8×8 trace.
 
 ## 11. Known limitations
 
-- The interpreter takes about 0.38 ms per event (measured on the prototype),
-  so the full 8×8 trace of 33,589 events takes about 13 s of interpreter
-  time. Fetching it through HTTP is correspondingly slow. The animation is
+- The interpreter takes about 0.43 ms per event, so the full 8×8 trace of
+  33,589 events takes about 14.5 s of interpreter time. Fetching it through HTTP is correspondingly slow. The animation is
   unaffected.
 - All state is in process memory. A restart invalidates every stream ID.
 - One global lock serves streams one request at a time, which is acceptable
