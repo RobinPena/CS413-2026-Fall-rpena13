@@ -4,6 +4,7 @@ notifications, errors and transport (TESTING.md R7, R8).
 from __future__ import annotations
 
 import json
+import re
 import uuid
 
 from MySolution.app import MAX_BODY_BYTES, create_app
@@ -200,6 +201,33 @@ class TransportTests(HttpTestCase):
                 self.assert_plain_text(response, 405)
                 self.assertEqual(response.headers["Allow"], "POST")
         self.assert_plain_text(self.post_raw(HEALTH, path="/nowhere"), 404)
+
+    def test_static_client_is_served(self):
+        page = self.client.get("/")
+        self.assertEqual((page.status_code, page.mimetype), (200, "text/html"))
+        html = page.get_data(as_text=True)
+        self.assertIn('<script type="module" src="/static/js/main.js"></script>', html)
+        # Every asset the page references is local and served with its media type,
+        # and so is every module that main.js imports, directly or indirectly.
+        assets = re.findall(r'(?:src|href)="([^"]+)"', html)
+        self.assertEqual(sorted(assets), ["/static/js/main.js", "/static/style.css"])
+        expected = {".js": "text/javascript", ".css": "text/css"}
+        queue, seen = list(assets), set()
+        while queue:
+            path = queue.pop()
+            if path in seen:
+                continue
+            seen.add(path)
+            response = self.client.get(path)
+            self.assertEqual(response.status_code, 200, path)
+            self.assertEqual(response.mimetype, expected[path[path.rindex("."):]], path)
+            text = response.get_data(as_text=True)
+            for module in re.findall(r'^import .* from "(\./[\w.]+)";$', text, re.M):
+                queue.append(path.rsplit("/", 1)[0] + module[1:])
+            # No CDN or other remote resource; the SVG namespace is a name, not a request.
+            self.assertEqual(re.findall(r"https?://(?!www\.w3\.org/2000/svg)", text), [], path)
+        self.assertEqual(seen, {"/static/style.css", "/static/js/main.js", "/static/js/player.js",
+                                "/static/js/render.js", "/static/js/transport.js"})
 
     def test_body_size_limit(self):
         at_limit = HEALTH + b" " * (MAX_BODY_BYTES - len(HEALTH))

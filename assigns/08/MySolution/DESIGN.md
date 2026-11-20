@@ -66,7 +66,7 @@ Files in `MySolution/`:
 | `rpc.py`, `errors.py` | JSON-RPC envelope handling and error objects, adapted from Assign07. |
 | `app.py`, `__main__.py` | Flask transport and command-line entry point (`python -m MySolution`). |
 | `static/` | `index.html`, `style.css`, `js/transport.js`, `js/player.js`, `js/render.js`, `js/main.js`. |
-| `tests/` | Python `unittest` suites and Node `node:test` suites for client logic. |
+| `tests/` | Python `unittest` suites, Node `node:test` suites for client logic (`tests/js/`), and a headless-Chrome run of the browser checklist (`tests/browser/checklist.mjs`). |
 | `requirements.txt`, `.gitignore` | Pinned dependency (Flask), ignored virtual environment and caches. |
 
 ## 3. Solver: state, invariant, continuations
@@ -558,14 +558,17 @@ step.
 - `transport.js`: `createRpcClient(fetchFn, url)` returns
   `call(method, params)`. It resolves to the `result`, or throws an
   `RpcError(code, message)` for a JSON-RPC error, or a `TransportError` for a
-  network failure, a non-200 status or a body that is not JSON.
+  network failure, a non-200 status, a body that is not a JSON object, or an
+  answer whose `id` does not match the request.
 - `player.js`: no DOM access. It holds playback state and the event reducer.
   The RPC client, the timer function and a change callback are injected, so
   Node tests can drive it.
-- `render.js`: draws the board, status, counters and log from the player's
-  view state.
-- `main.js`: connects buttons, the speed slider and the size selector to the
-  player.
+- `render.js`: draws the board, the attack line, the status sentence,
+  counters, controls and log from the player's state. It never calls the
+  server.
+- `main.js`: connects the buttons, keyboard shortcuts, speed slider, size
+  selector and checkbox to the player, and resets (closing the stream) when
+  the page is left.
 
 ### 8.2 Client state
 
@@ -584,12 +587,13 @@ step.
 | --- | --- |
 | **Start / Restart** | Resets any current stream, opens a fresh one at the selected size (default 8), and starts playing. |
 | **Step** | Switches to paused and shows exactly one event, taken from the buffer or fetched with `limit: 1`. Opens a stream first if none exists. |
-| **Play / Pause** | Toggles between playing and paused. While playing, one event is shown per tick and `limit: 1` is fetched whenever the buffer is empty. Pause stops scheduling. If a request is in flight when Pause is pressed, its event is buffered and shown on the next Step or Play, so no event is lost or skipped. |
+| **Play / Pause** | Toggles between playing and paused. While playing, one event is shown per tick and `limit: 1` is fetched whenever the buffer is empty; a solution is held for four ticks. Pause stops scheduling. If Play is pressed while a Step's request is pending, playback starts as soon as it completes. If a request is in flight when Pause is pressed, its event is buffered and shown on the next Step or Play, so no event is lost or skipped. |
 | **Next solution** | Fetches batches of up to 32 events and applies them without per-event delay, stopping immediately after the next `solution` (or `done`). Unshown events from the last batch stay in the buffer. Without batching, reaching the first 8×8 solution would take 1,858 requests; with batches of 32 it takes about 59. |
 | **Reset** | Increments `run`, cancels timers, sends `queens.close` for the old stream (errors ignored), clears the board, counters, log and buffer, and returns to `idle`. |
 | **Speed** | A slider mapping to a delay of 1000 ms down to 10 ms per event. It applies from the next tick. |
 | **Pause at solutions** | A checkbox, on by default. While playing, a `solution` event switches the mode to paused. |
 | **Board size** | A selector for 4 to 10, default 8. Changing it during a search resets. |
+| **Keys** | S steps, P plays or pauses, N finds the next solution, R resets. They are ignored while a form control has focus. |
 
 **Stale responses.** Each asynchronous step records `run` when its request
 starts. If `run` has changed by the time the response arrives, the response
@@ -603,21 +607,26 @@ and Reset stay enabled.
 
 **Completion.** `done` sets `mode = done` and shows a status banner,
 "Search complete: N solutions", styled differently from a solution banner.
-Step, Play and Next solution are disabled, and Start is labeled Restart.
+The client then closes the stream, so the server can drop its exhausted
+record at once. Step, Play and Next solution are disabled, and Start is
+labeled Restart.
 
 ### 8.4 Visual states
 
-Every state uses color, a symbol and text together, so none relies on color
-alone.
+The board is drawn like a diagram in a chess book: white light squares,
+hatched dark squares, and row and column numbers on the edges. The number of
+the row being searched is highlighted, so it visibly moves down as queens are
+placed and back up on a backtrack. Every event state uses color, a symbol and
+text together, so none relies on color alone.
 
 | Event | Board | Status text |
 | --- | --- | --- |
-| `try` | A candidate queen with a dashed amber outline at (row, column). Committed queens come from the snapshot. | "Try row r, column c" |
-| `place` | The queen becomes solid, with a green flash. | "Place queen at row r, column c" |
-| `reject` | The candidate square turns red with a ✕. The attacking queen is outlined red and the squares between them are tinted. | "Reject row r, column c: same column as the queen in row i" or "… on a diagonal with the queen in row i" |
-| `backtrack` | The removed queen's square shows a fading purple ↩ outline. The board shows the restored snapshot. | "Backtrack: remove the queen from row r, column c" |
-| `solution` | All queens turn gold, the board border turns gold, and the counter increments. | "Solution k: [ … ]" |
-| `done` | The final board stays visible, with a blue completion banner. | "Search complete: N solutions" |
+| `try` | A candidate queen in ochre, with an ochre ring and a dashed inner outline, at (row, column). Committed queens come from the snapshot. | "Try row r, column c" |
+| `place` | The queen turns green and settles into place with a short scale animation (none under reduced motion). | "Place queen at row r, column c" |
+| `reject` | The candidate square turns red with a ✕. The attacking queen is outlined red, the squares between them are tinted, and a dashed red line runs from the attacker to the candidate. | "Reject row r, column c: same column as the queen in row i" or "… on a diagonal with the queen in row i" |
+| `backtrack` | The vacated square shows a violet ↩ in a violet ring. The board shows the restored snapshot. | "Backtrack: remove the queen from row r, column c" |
+| `solution` | All queens and the board border turn gold, a gold "Solution k" banner appears, and the counter increments. | "Solution k: [ … ]" |
+| `done` | The final board stays visible, with a blue border and a blue completion banner. | "Search complete: N solutions" |
 
 The reject explanation is display logic in `player.js`. It finds the first
 attacking queen in the same order as `queens_check_safe` (nearest row first)
@@ -630,10 +639,11 @@ trace has an attacking queen on its board
 - Controls are native `<button>`, `<input>` and `<select>` elements with
   labels, a visible `:focus-visible` outline, and clear disabled styling.
   Play/Pause uses `aria-pressed`.
-- The status line is an `aria-live="polite"` region and also states the
-  board as text. Errors use `role="alert"`.
+- The status line is an `aria-live="polite"` region, and the board's
+  accessible label lists the queens as text. Errors use `role="alert"`.
 - The board sits beside the controls on laptop widths and stacks above them
-  below about 720 px. Square size scales with the viewport.
+  below 760 px. Square size scales with the viewport, and the banner keeps
+  its space when hidden, so the board never jumps.
 
 ## 9. Security boundaries
 

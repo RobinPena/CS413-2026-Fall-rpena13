@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>N-Queens search</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script type="module" src="/static/js/main.js"></script>
+</head>
+<body>
+  <header class="masthead">
+    <h1>N-Queens search</h1>
+    <p>Each step is one event from a LAMBDA3 continuation-passing search. The
+      server computes an event only when this page asks for it.</p>
+  </header>
+
+  <main class="layout">
+    <section class="stage" aria-label="Board">
+      <p id="milestone" class="milestone" hidden></p>
+      <div id="board-frame" class="board-frame" style="--n: 8">
+        <div id="column-labels" class="column-labels" aria-hidden="true"></div>
+        <div id="row-labels" class="row-labels" aria-hidden="true"></div>
+        <div class="board-wrap">
+          <div id="board" class="board" role="img" aria-label="Empty board"></div>
+          <svg id="attack-line" class="attack-line" viewBox="0 0 8 8" preserveAspectRatio="none" aria-hidden="true"></svg>
+        </div>
+      </div>
+      <p id="status" class="status" aria-live="polite"></p>
+    </section>
+
+    <section class="panel" aria-label="Controls and progress">
+      <p id="error" class="error" role="alert" hidden></p>
+
+      <div class="controls" role="group" aria-label="Playback">
+        <button id="start" class="primary" type="button">Start</button>
+        <button id="step" type="button" aria-keyshortcuts="S">Step</button>
+        <button id="play" type="button" aria-pressed="false" aria-keyshortcuts="P">Play</button>
+        <button id="next-solution" type="button" aria-keyshortcuts="N">Next solution</button>
+        <button id="reset" type="button" aria-keyshortcuts="R">Reset</button>
+      </div>
+      <p class="hint">Keys: S step, P play or pause, N next solution, R reset.</p>
+
+      <div class="settings">
+        <label class="setting" for="speed">Speed</label>
+        <div class="speed">
+          <input id="speed" type="range" min="0" max="100" value="40" aria-describedby="speed-value">
+          <output id="speed-value" for="speed"></output>
+        </div>
+        <label class="setting" for="size">Board size</label>
+        <select id="size">
+          <option value="4">4 × 4</option>
+          <option value="5">5 × 5</option>
+          <option value="6">6 × 6</option>
+          <option value="7">7 × 7</option>
+          <option value="8" selected>8 × 8</option>
+          <option value="9">9 × 9</option>
+          <option value="10">10 × 10</option>
+        </select>
+        <label class="check"><input id="pause-at-solution" type="checkbox" checked> Pause at each solution</label>
+      </div>
+
+      <dl class="counters">
+        <div><dt>Solutions</dt><dd id="count-solutions">0</dd></div>
+        <div><dt>Events shown</dt><dd id="count-events">0</dd></div>
+        <div><dt>Tries</dt><dd id="count-try">0</dd></div>
+        <div><dt>Rejections</dt><dd id="count-reject">0</dd></div>
+        <div><dt>Backtracks</dt><dd id="count-backtrack">0</dd></div>
+        <div><dt>State</dt><dd id="mode">Ready</dd></div>
+      </dl>
+
+      <h2>How to read the board</h2>
+      <ul class="legend">
+        <li><span class="key square light" data-mark="try">&#x265B;&#xFE0E;</span> A queen being tried</li>
+        <li><span class="key square light" data-mark="place">&#x265B;&#xFE0E;</span> Safe, so the queen is placed</li>
+        <li><span class="key square light" data-mark="reject">&#x2715;</span> Rejected; the red line runs to the queen that attacks it</li>
+        <li><span class="key square light" data-mark="backtrack">&#x21A9;</span> Backtrack: this queen is removed</li>
+        <li><span class="key square light key-solution" data-mark="queen">&#x265B;&#xFE0E;</span> A gold border marks a solution</li>
+        <li><span class="key square light key-done" data-mark="queen">&#x265B;&#xFE0E;</span> A blue border marks the end of the search</li>
+      </ul>
+
+      <h2>Recent events</h2>
+      <ol id="log" class="log" aria-label="Recent events, newest first"></ol>
+    </section>
+  </main>
+</body>
+</html>

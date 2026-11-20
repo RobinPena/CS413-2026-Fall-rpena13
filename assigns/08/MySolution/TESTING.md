@@ -10,7 +10,7 @@ All commands run from `assigns/08/`.
 | --- | --- |
 | Python: solver, adapter, stream table, RPC over HTTP | `MySolution/.venv/bin/python -B -m unittest discover -s MySolution/tests -t . -v` |
 | Client logic (Node built-in test runner, no packages) | `node --test MySolution/tests/js/` |
-| Browser behavior | The manual checklist in [section 2](#2-browser-checklist), plus browser automation if it is available. |
+| Browser checklist in headless Chrome (needs Google Chrome; set `PYTHON` or `CHROME` to override paths) | `node MySolution/tests/browser/checklist.mjs` |
 
 ## Ground rules
 
@@ -140,7 +140,6 @@ layer.
 | `ErrorTests.test_too_many_streams_application_error` | `tests/test_rpc.py` | The 65th open gets `-32021` with `data: {"limit": 64}`. |
 | `TransportTests.test_media_type_and_method_checks` | `tests/test_rpc.py` | A missing or wrong `Content-Type` gives 415, `GET`/`PUT`/`DELETE /rpc` give 405 with `Allow: POST`, and an unknown path gives 404, all as plain text. JSON in any letter case, with or without `charset=utf-8`, is accepted. |
 | `TransportTests.test_body_size_limit` | `tests/test_rpc.py` | A body of exactly 64 KiB is accepted; one byte more gives 413 as plain text. |
-| `TransportTests.test_static_client_is_served` | `tests/test_rpc.py` | `GET /` serves HTML and `GET /static/js/player.js` serves JavaScript. |
 
 ### R8. Parameter boundaries and `limit` (Assign08 #8)
 
@@ -160,22 +159,34 @@ layer.
 | `FullFlowTests.test_size8_http_open_to_done` | `tests/test_http_flow.py` | On a real local socket server: `open`, then `next` with limit 32 until `done: true`. 33,589 events in 1,050 requests, only the last one short; 92 valid, distinct solutions in reference order; `done` once and last; and the events equal the solver's own trace exactly. |
 | `FullFlowTests.test_repeated_terminal_reads_then_close` | `tests/test_http_flow.py` | Empty `done: true` reads repeat, then `close` gives `{"closed": true}`, then `-32020`. |
 
-### R10. Browser client logic (Assign08 #10, automated part)
+### R10. Browser client (Assign08 #10)
+
+The playback tests replay the solver's real 4×4 trace from
+`tests/js/fixtures/size4-trace.json` through a fake server that can hold
+responses back, so each test decides exactly when a request completes.
 
 | Test | File | What it shows |
 | --- | --- | --- |
-| `applyEvent handles each kind` | `tests/js/player.test.mjs` | Committed board, candidate and highlight for `try`, `place`, `reject`, `backtrack`, `solution` and `done`. |
-| `explainReject finds column and both diagonals` | `tests/js/player.test.mjs` | Nearest-first attacker and reason text. |
-| `step shows one event with limit 1` | `tests/js/player.test.mjs` | One `queens.next` with `limit: 1` per step. |
-| `play schedules and pause stops consumption` | `tests/js/player.test.mjs` | Fake timer: no requests after Pause, and an in-flight event is buffered, not lost. |
-| `next solution stops at solution and buffers the rest` | `tests/js/player.test.mjs` | Batches of 32, stop right after `solution`, leftovers shown by a later Step. |
-| `done disables playback and enables restart` | `tests/js/player.test.mjs` | Mode `done`, and the solution count is kept. |
-| `reset closes the stream and ignores stale responses` | `tests/js/player.test.mjs` | A deferred `next` that resolves after Reset changes nothing. |
-| `stale open result is closed` | `tests/js/player.test.mjs` | An orphaned stream ID gets `queens.close`. |
-| `only one request in flight` | `tests/js/player.test.mjs` | Repeated Step while pending sends one request. |
-| `transport and RPC errors are visible and recoverable` | `tests/js/player.test.mjs` | Mode `error` with a message, then Start opens a fresh stream. |
-| `event log is bounded` | `tests/js/player.test.mjs` | The log never exceeds 200 entries. |
-| `rpc client maps errors` | `tests/js/transport.test.mjs` | A JSON-RPC error gives `RpcError`, and a network failure, non-200 status or non-JSON body gives `TransportError`. Request IDs increase. |
+| `applyEvent handles each kind` | `tests/js/player.test.mjs` | For `try`, `place`, `reject`, `backtrack`, `solution` and `done`: the committed board comes from the snapshot, the candidate is kept apart, and the status sentences are exact. |
+| `explainReject finds column and both diagonals` | `tests/js/player.test.mjs` | Nearest attacker first, the reason, and the squares between; every rejection in the real trace is explained. |
+| `step shows one event with limit 1` | `tests/js/player.test.mjs` | Step opens a stream once, then sends one `queens.next` with `limit: 1` per press. |
+| `play schedules and pause stops consumption` | `tests/js/player.test.mjs` | Fake timers: one event per tick, a new speed applies from the next tick, and nothing is requested after Pause. |
+| `pause while a request is in flight buffers the event instead of losing it` | `tests/js/player.test.mjs` | The late event is buffered and shown by the next Step without a new request. |
+| `play pressed during a pending step keeps playing` | `tests/js/player.test.mjs` | Playback starts once the pending Step finishes. |
+| `next solution stops at solution and buffers the rest` | `tests/js/player.test.mjs` | Batches of 32, a stop right after the `solution`, leftovers shown by later Steps. |
+| `pause at solutions stops playback on a solution` | `tests/js/player.test.mjs` | With the option on, Play pauses at the first solution. |
+| `done disables playback and enables restart` | `tests/js/player.test.mjs` | All 139 events, 2 solutions, the finished stream closed, Step/Play/Next solution inert, and Restart opening a fresh stream. |
+| `reset closes the stream and ignores stale responses` | `tests/js/player.test.mjs` | Reset sends `queens.close`, and a `next` answered after Reset changes nothing. |
+| `stale open result is closed` | `tests/js/player.test.mjs` | A stream opened for a search that was reset gets `queens.close`. |
+| `only one request in flight` | `tests/js/player.test.mjs` | Repeated Step and Next solution presses while a request is pending send nothing. |
+| `transport and RPC errors are visible and recoverable` | `tests/js/player.test.mjs` | Network failure, expired stream and internal error each give mode `error` with a message saying what to do; Restart then works. |
+| `event log is bounded` | `tests/js/player.test.mjs` | The log keeps the latest 200 entries. |
+| `speed slider maps to delays from 1000 ms to 10 ms` | `tests/js/player.test.mjs` | The slider's range, and faster never means slower. |
+| `rpc client sends JSON-RPC 2.0 requests with increasing ids` | `tests/js/transport.test.mjs` | Exact request bodies, `POST`, `Content-Type: application/json`. |
+| `rpc client maps errors` | `tests/js/transport.test.mjs` | A JSON-RPC error gives `RpcError`; a network failure, non-200 status, non-JSON or `null` body, or mismatched `id` gives `TransportError`. |
+| `AdapterTests.test_client_fixture_matches_solver` | `tests/test_adapter.py` | The fixture the client tests replay is exactly the solver's 4×4 trace. |
+| `TransportTests.test_static_client_is_served` | `tests/test_rpc.py` | `GET /` serves the page; it and every module it imports are served locally with the right media type, and no file references a remote URL. |
+| Browser checklist B1–B12 | `tests/browser/checklist.mjs` | The [checklist](#2-browser-checklist) run in headless Chrome against the real server, by clicking the page's controls: 27 checks, plus no JavaScript errors. |
 
 ### R11. Reproducibility and submission hygiene
 
@@ -187,8 +198,9 @@ layer.
 
 ## 2. Browser checklist
 
-This checklist is run against the real server at `http://127.0.0.1:8000/`,
-by hand or with browser automation.
+`tests/browser/checklist.mjs` runs every step below in headless Chrome
+against the real server. Each step can also be done by hand at
+`http://127.0.0.1:8000/`.
 
 | # | Step | Expected |
 | --- | --- | --- |

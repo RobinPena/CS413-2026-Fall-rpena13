@@ -1,6 +1,7 @@
 """Adapter tests: interpreter location, solver type, JSON conversion, and take (TESTING.md R4, R5)."""
 from __future__ import annotations
 
+import json
 import unittest
 from pathlib import Path
 
@@ -50,6 +51,11 @@ class AdapterTests(unittest.TestCase):
         for source, expected in cases.items():
             with self.subTest(source):
                 self.assertEqual(adapter.event_to_json(evaluate(source)), expected)
+
+    def test_client_fixture_matches_solver(self):
+        # The client tests replay this file; it must be the solver's real 4x4 trace.
+        fixture = Path(__file__).resolve().parent / "js" / "fixtures" / "size4-trace.json"
+        self.assertEqual(json.loads(fixture.read_text()), list(trace(4)))
 
     def test_take_continues_without_repeats_or_gaps(self):
         whole = adapter.take(adapter.open_stream(6), 40).events
