@@ -216,3 +216,42 @@ against the real server. Each step can also be done by hand at
 | B10 | Stop the server, then press Step. | A visible error message. After restarting the server, Restart works. |
 | B11 | Keyboard only (Tab, Enter or Space). | Every control is reachable, with a visible focus ring and clearly disabled states. |
 | B12 | Narrow the window to about 400 px wide. | The board stays legible, controls stack, and there is no horizontal scroll. |
+
+## 3. Results
+
+Observed on 2026-11-19 on macOS 27.0.1 (arm64) with Python 3.14.10,
+Flask 3.1.3, Node 26.13.1 and Chrome 158.0.8127.37. The commands were run
+exactly as written in [README.md](README.md), from a fresh copy of
+`assigns/08/` with a newly created virtual environment.
+
+| Command | Observed |
+| --- | --- |
+| `MySolution/.venv/bin/python -B -m unittest discover -s MySolution/tests -t . -v` | `Ran 79 tests in 49.657s`, `OK` |
+| `node --test MySolution/tests/js/` | 17 tests, 17 passed, 0 failed |
+| `node MySolution/tests/browser/checklist.mjs` | `27/27 browser checks passed` in about 14 s, with no JavaScript errors in the page |
+| The `curl` examples in README.md, against `python -m MySolution` | Every answer was exactly as documented (`queens.open` apart from its new UUID) |
+
+Values the tests assert, as observed:
+
+- **4×4:** 139 events; solutions `[1,3,0,2]` then `[2,0,3,1]`.
+- **8×8:** 33,589 events: 15,720 `try`, 13,664 `reject`, 2,056 `place`,
+  2,056 `backtrack`, 92 `solution` and 1 `done` (last). The 92 solutions are
+  valid, distinct and in lexicographic order, and two fresh streams give
+  identical traces. The first solution, `[0,4,7,5,2,6,1,3]`, is event 1,858.
+  Over HTTP the whole stream took 1,050 requests with `limit: 32`, and the
+  events equal the solver's own trace.
+- **Laziness:** opening a stream makes exactly one interpreter application
+  (`queens_stream` itself) and no `search` call; forcing the first event
+  makes one `search` call and no `check_safe` call; after `k` events the next
+  cell is still unevaluated for sizes 8, 9 and 10; delivered cells are freed;
+  5,000 events of a 10×10 stream run under a lowered recursion limit.
+
+Gaps:
+
+- Only macOS was tested. Linux and Windows were not run.
+- The browser checklist was run by automation in headless Chrome, not
+  repeated by hand. Its screenshots were reviewed for appearance at laptop
+  width and at 400 px.
+- `StreamTableTests.test_concurrent_next_has_no_duplicates_or_gaps` slows
+  each read to make races likely; like any concurrency test, it can show a
+  race but cannot prove there is none.
