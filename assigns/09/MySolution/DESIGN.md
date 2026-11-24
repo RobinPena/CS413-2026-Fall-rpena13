@@ -162,6 +162,10 @@ that one origin (D4).
 | D9 | The machine-readable contract is JSON Schema 2020-12 (`api.schema.json`), with one `$defs` entry per request and response body. Tests check the schema itself and validate every response against it. | Assign09 accepts JSON Schema for all bodies. It reuses the Assign07 tooling, with no extra validator package. |
 | D10 | API tests use `unittest` with Flask's test client. Client tests use Node's built-in test runner (no npm packages). An integration test starts the real database service, studio host, and Assign07 service on free ports. | These are the same tools Assign07 and Assign08 used. Successful execution is only ever tested against the real LAMBDA3. |
 | D11 | The Assign07 service is started from `../07` with its own documented command. The studio host takes `--lambda-url`, and the database service takes `--studio-origin`. | Instructions use relative paths and command options, never absolute paths. |
+| D12 | Request validation runs before the store is consulted. Inside the lock the order is: existence → `If-Match` present → `If-Match` well formed → revision → uniqueness → capacity (API.md §9). | Assign09 requires only that a missing record wins over a missing or stale precondition. Validating first keeps the work under the lock small. |
+| D13 | `If-Match` must be exactly one strong quoted revision. `*`, weak tags, lists, and unquoted values return `400 malformed_if_match` (API.md §5). | `*` would let a client overwrite a newer revision without seeing it, which is exactly what Assign09 forbids. |
+| D14 | Limits: source 65,536 UTF-8 bytes (Assign07's own limit), names 100 characters, descriptions 1,000 characters, expected values 8,192 bytes, 500 programs, 100 collections, 100 cases per collection, pages 1–100 (default 50), 1 MiB bodies (API.md §4). | All five supplied LAMBDA3 libraries together are 21,603 bytes, so a test case can embed them. Any stored source can be sent to LAMBDA3 unchanged. |
+| D15 | List snapshots expire 600 s after their last use. At most 100 are open; a new multi-page first page past that cap returns `409 capacity_limit` (`list_snapshots`), and valid snapshots are never evicted early. A list that fits in one page creates no snapshot (API.md §6). | This honours Assign09's promise that a cursor chain stays stable, while bounding memory. Snapshots share immutable record values (D8), so each costs one reference per record. |
 
 ## 5. Proposed file layout
 
@@ -196,9 +200,12 @@ and storage.
 
 ## 6. Requirement traceability
 
+`API.md` cites every contract requirement (CON, VAL, DATA, REV, PAGE) in
+brackets at the place that defines it.
+
 | Requirement IDs | Delivered by | Verified by |
 | --- | --- | --- |
-| CON-1, CON-2 | `API.md`, `api.schema.json` | Schema self-check and example validation (`tests/test_schema.py`); cross-check of route table against Assign09.md |
+| CON-1, CON-2 | `API.md`, `api.schema.json` | Schema self-check, validation of every API.md example body against its route's schema, and a route- and status-table cross-check against Assign09.md (`tests/test_schema.py`) |
 | CON-3 … CON-12 | `app.py`, `http_io.py`, `errors.py` | `tests/test_transport.py`, `tests/test_failures.py` |
 | VAL-1 … VAL-7 | `validation.py` | `tests/test_validation.py`, `tests/test_pagination.py` |
 | DATA-1 … DATA-11 | `models.py`, `service.py`, `store.py` | `tests/test_programs.py`, `tests/test_collections.py`, `tests/test_cases.py` |

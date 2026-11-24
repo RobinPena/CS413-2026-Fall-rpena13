@@ -1,0 +1,298 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cs413.local/assign09/api.schema.json",
+  "title": "LAMBDA-studio database service, API v1: request and response bodies",
+  "description": "One $defs entry per JSON body. API.md section 3 maps each route and status to its schema. API.md is authoritative where the schema cannot express a rule: name trimming, UTF-8 byte limits, uniqueness, and check order.",
+  "$defs": {
+    "Health": {
+      "type": "object",
+      "properties": {
+        "status": { "const": "ok" },
+        "version": { "const": "1.0" }
+      },
+      "required": ["status", "version"],
+      "additionalProperties": false
+    },
+
+    "ProgramInput": {
+      "description": "Body of POST /programs and PUT /programs/{id}. PUT replaces all three fields, so an omitted description becomes \"\".",
+      "type": "object",
+      "properties": {
+        "name": { "$ref": "#/$defs/NameInput" },
+        "source": { "$ref": "#/$defs/SourceInput" },
+        "description": { "$ref": "#/$defs/DescriptionInput" }
+      },
+      "required": ["name", "source"],
+      "additionalProperties": false
+    },
+    "CollectionInput": {
+      "description": "Body of POST /collections and PUT /collections/{id}. Cases are changed only through the case routes.",
+      "type": "object",
+      "properties": {
+        "name": { "$ref": "#/$defs/NameInput" },
+        "description": { "$ref": "#/$defs/DescriptionInput" }
+      },
+      "required": ["name"],
+      "additionalProperties": false
+    },
+    "CaseInput": {
+      "description": "Body of POST /collections/{id}/cases and PUT /collections/{id}/cases/{case_id}.",
+      "type": "object",
+      "properties": {
+        "name": { "$ref": "#/$defs/NameInput" },
+        "source": { "$ref": "#/$defs/SourceInput" },
+        "expected": { "$ref": "#/$defs/Expected" },
+        "description": { "$ref": "#/$defs/DescriptionInput" }
+      },
+      "required": ["name", "source", "expected"],
+      "additionalProperties": false
+    },
+
+    "NameInput": {
+      "description": "Must contain a non-whitespace character. The service stores it with leading and trailing whitespace removed; the trimmed name is 1-100 characters.",
+      "type": "string",
+      "pattern": "\\S"
+    },
+    "SourceInput": {
+      "description": "LAMBDA source text, stored exactly as sent (never trimmed). At most 65,536 UTF-8 bytes and not whitespace only.",
+      "type": "string",
+      "pattern": "\\S"
+    },
+    "DescriptionInput": {
+      "description": "Optional; defaults to \"\". At most 1,000 characters. Not trimmed.",
+      "type": "string",
+      "maxLength": 1000
+    },
+
+    "Expected": {
+      "description": "The expected outcome of running a case: exactly one of three tagged shapes.",
+      "oneOf": [
+        { "$ref": "#/$defs/ExpectedValue" },
+        { "$ref": "#/$defs/ExpectedError" }
+      ]
+    },
+    "ExpectedValue": {
+      "description": "Matches only a successful run whose formatted value equals value exactly. value is at most 8,192 UTF-8 bytes.",
+      "type": "object",
+      "properties": {
+        "kind": { "const": "value" },
+        "value": { "type": "string" }
+      },
+      "required": ["kind", "value"],
+      "additionalProperties": false
+    },
+    "ExpectedError": {
+      "description": "syntax matches a LAMBDA3 syntax error; type matches a LAMBDA3 type-checking error.",
+      "type": "object",
+      "properties": {
+        "kind": { "const": "error" },
+        "category": { "enum": ["syntax", "type"] }
+      },
+      "required": ["kind", "category"],
+      "additionalProperties": false
+    },
+
+    "Id": {
+      "description": "Opaque, service-generated identifier. Clients must not construct or parse IDs.",
+      "type": "string",
+      "minLength": 1
+    },
+    "Timestamp": {
+      "description": "UTC, ISO 8601, millisecond precision, Z suffix.",
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$"
+    },
+    "Revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "StoredName": {
+      "description": "A trimmed name.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "pattern": "^\\S([\\s\\S]*\\S)?$"
+    },
+
+    "Program": {
+      "type": "object",
+      "properties": {
+        "id": { "$ref": "#/$defs/Id" },
+        "name": { "$ref": "#/$defs/StoredName" },
+        "source": { "type": "string", "minLength": 1 },
+        "description": { "type": "string", "maxLength": 1000 },
+        "created_at": { "$ref": "#/$defs/Timestamp" },
+        "updated_at": { "$ref": "#/$defs/Timestamp" },
+        "revision": { "$ref": "#/$defs/Revision" }
+      },
+      "required": ["id", "name", "source", "description", "created_at", "updated_at", "revision"],
+      "additionalProperties": false
+    },
+    "Case": {
+      "type": "object",
+      "properties": {
+        "id": { "$ref": "#/$defs/Id" },
+        "name": { "$ref": "#/$defs/StoredName" },
+        "source": { "type": "string", "minLength": 1 },
+        "expected": { "$ref": "#/$defs/Expected" },
+        "description": { "type": "string", "maxLength": 1000 }
+      },
+      "required": ["id", "name", "source", "expected", "description"],
+      "additionalProperties": false
+    },
+    "Collection": {
+      "type": "object",
+      "properties": {
+        "id": { "$ref": "#/$defs/Id" },
+        "name": { "$ref": "#/$defs/StoredName" },
+        "description": { "type": "string", "maxLength": 1000 },
+        "created_at": { "$ref": "#/$defs/Timestamp" },
+        "updated_at": { "$ref": "#/$defs/Timestamp" },
+        "revision": { "$ref": "#/$defs/Revision" },
+        "cases": {
+          "description": "In stored order. At most 100.",
+          "type": "array",
+          "items": { "$ref": "#/$defs/Case" },
+          "maxItems": 100
+        }
+      },
+      "required": ["id", "name", "description", "created_at", "updated_at", "revision", "cases"],
+      "additionalProperties": false
+    },
+
+    "ProgramResponse": {
+      "type": "object",
+      "properties": { "program": { "$ref": "#/$defs/Program" } },
+      "required": ["program"],
+      "additionalProperties": false
+    },
+    "CollectionResponse": {
+      "type": "object",
+      "properties": { "collection": { "$ref": "#/$defs/Collection" } },
+      "required": ["collection"],
+      "additionalProperties": false
+    },
+    "ProgramPage": {
+      "type": "object",
+      "properties": {
+        "items": { "type": "array", "items": { "$ref": "#/$defs/Program" }, "maxItems": 100 },
+        "next_cursor": { "$ref": "#/$defs/NextCursor" }
+      },
+      "required": ["items", "next_cursor"],
+      "additionalProperties": false
+    },
+    "CollectionPage": {
+      "type": "object",
+      "properties": {
+        "items": { "type": "array", "items": { "$ref": "#/$defs/Collection" }, "maxItems": 100 },
+        "next_cursor": { "$ref": "#/$defs/NextCursor" }
+      },
+      "required": ["items", "next_cursor"],
+      "additionalProperties": false
+    },
+    "NextCursor": {
+      "description": "Opaque token for the next page of the same snapshot, or null on the last page.",
+      "type": ["string", "null"],
+      "minLength": 1
+    },
+
+    "ErrorResponse": {
+      "type": "object",
+      "properties": { "error": { "$ref": "#/$defs/Error" } },
+      "required": ["error"],
+      "additionalProperties": false
+    },
+    "Error": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "enum": [
+            "invalid_request",
+            "record_not_found",
+            "method_not_allowed",
+            "duplicate_name",
+            "revision_conflict",
+            "capacity_limit",
+            "payload_too_large",
+            "unsupported_media_type",
+            "precondition_required",
+            "internal_error"
+          ]
+        },
+        "message": { "type": "string", "minLength": 1 },
+        "field": {
+          "description": "invalid_request and duplicate_name: the offending body field (dotted path such as expected.kind), query parameter, or header; null when the body as a whole is at fault.",
+          "type": ["string", "null"]
+        },
+        "reason": {
+          "description": "invalid_request only: why the field was rejected.",
+          "enum": [
+            "malformed_json",
+            "duplicate_member",
+            "not_object",
+            "unknown_field",
+            "server_managed_field",
+            "missing",
+            "wrong_type",
+            "invalid_text",
+            "blank",
+            "too_long",
+            "too_large",
+            "invalid_value",
+            "unknown_parameter",
+            "repeated_parameter",
+            "out_of_range",
+            "malformed_cursor",
+            "unknown_cursor",
+            "malformed_if_match"
+          ]
+        },
+        "limit": {
+          "description": "The limit that was exceeded: characters (too_long), UTF-8 bytes (too_large, payload_too_large), the page-size maximum (out_of_range), or a record count (capacity_limit).",
+          "type": "integer",
+          "minimum": 1
+        },
+        "resource": {
+          "description": "capacity_limit only: which capacity was reached.",
+          "enum": ["programs", "collections", "cases", "list_snapshots"]
+        },
+        "current_revision": {
+          "description": "revision_conflict only: the record's current revision.",
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "required": ["code", "message"],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": { "properties": { "code": { "const": "invalid_request" } } },
+          "then": { "required": ["field", "reason"] },
+          "else": { "not": { "required": ["reason"] } }
+        },
+        {
+          "if": { "properties": { "code": { "const": "duplicate_name" } } },
+          "then": { "required": ["field"], "properties": { "field": { "const": "name" } } }
+        },
+        {
+          "if": { "properties": { "code": { "const": "revision_conflict" } } },
+          "then": { "required": ["current_revision"] },
+          "else": { "not": { "required": ["current_revision"] } }
+        },
+        {
+          "if": { "properties": { "code": { "const": "capacity_limit" } } },
+          "then": { "required": ["resource", "limit"] },
+          "else": { "not": { "required": ["resource"] } }
+        },
+        {
+          "if": { "properties": { "code": { "const": "payload_too_large" } } },
+          "then": { "required": ["limit"] }
+        },
+        {
+          "if": { "properties": { "code": { "enum": ["invalid_request", "duplicate_name"] } } },
+          "else": { "not": { "required": ["field"] } }
+        }
+      ]
+    }
+  }
+}
