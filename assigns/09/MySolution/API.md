@@ -75,10 +75,11 @@ Any other method on a known path returns `405 method_not_allowed`, with an
   - empty or truncated JSON
   - trailing text after the value
   - the constants `NaN`, `Infinity`, and `-Infinity`
+  - an integer too long to convert (more than 4,300 digits)
   - nesting too deep to decode
 - **Duplicate members:** a member name repeated within one object returns
-  `400` with reason `duplicate_member`, so different JSON parsers can never
-  disagree about a body's meaning.
+  `400` with reason `duplicate_member` and `field: null`, so different JSON
+  parsers can never disagree about a body's meaning.
 - **Methods without a body:** the service does not read the body of `GET`,
   `HEAD`, `DELETE`, or `OPTIONS` requests. Any such body is ignored.
 
@@ -468,8 +469,8 @@ the last page.
 ## 7. Atomicity and concurrency
 
 The service runs Flask's threaded development server, so requests can run at
-the same time. One lock protects the whole store, including snapshots. Each
-store operation runs from start to finish while holding it:
+the same time. One lock protects the whole store. Each store operation runs
+from start to finish while holding it:
 
 1. look up the record;
 2. check the precondition;
@@ -488,6 +489,10 @@ Therefore [REV-5, REV-6]:
   time. The first succeeds, and the second sees the new revision and returns
   `409 revision_conflict`.
 - A read returns a record as it was between mutations, never half-changed.
+
+List snapshots (§6) have a separate lock of their own. A first page captures
+the records under the store lock in one step, then files the snapshot under
+the snapshot lock. The two locks are never held together.
 
 The service never makes network calls, so the lock is never held while
 waiting on another service.
@@ -585,7 +590,8 @@ is changed by a failed request.
 13. **The change is made**, and the response is captured.
 
 Steps 1–6 inspect only the request. Steps 7–13 run atomically under the store
-lock (§7).
+lock (§7). For a list, the snapshot capacity check comes right after the
+capture, under the snapshot lock.
 
 Assign09 requires a missing record to return `404` even when its `If-Match`
 is missing or stale. Steps 7–10 ensure this. An invalid request body is

@@ -184,7 +184,8 @@ assigns/09/MySolution/
 ├── studio/
 │   ├── __main__.py      python -m MySolution.studio: static files + /lambda/rpc forwarder
 │   └── static/          index.html, style.css, js/{storage,lambda3,runner,main}.js
-├── tests/               test_unit_*.py: business rules; HTTP suite; js/ adapter, runner, integration
+├── tests/               test_unit_*.py: business rules without HTTP; test_*.py: HTTP suite
+│                        (http_support.py, race_support.py); js/ adapter, runner, integration
 ├── API.md               the REST contract
 ├── api.schema.json      JSON Schema for all request and response bodies
 ├── DESIGN.md            this document
@@ -206,13 +207,13 @@ brackets at the place that defines it.
 | Requirement IDs | Delivered by | Verified by |
 | --- | --- | --- |
 | CON-1, CON-2 | `API.md`, `api.schema.json` | Schema self-check, validation of every API.md example body against its route's schema, and a route- and status-table cross-check against Assign09.md (`tests/test_schema.py`) |
-| CON-3 … CON-12 | `app.py`, `errors.py` | `tests/test_transport.py`, `tests/test_failures.py` |
-| VAL-1 … VAL-7 | `validation.py` | `tests/test_unit_validation.py`; `tests/test_validation.py`, `tests/test_pagination.py` (HTTP) |
-| DATA-1 … DATA-11 | `models.py`, `service.py`, `store.py` | `tests/test_unit_service.py`; `tests/test_programs.py`, `tests/test_collections.py`, `tests/test_cases.py` (HTTP) |
+| CON-3 … CON-12 | `app.py`, `errors.py` | `tests/test_transport.py`, `tests/test_failures.py`; error statuses in every HTTP test |
+| VAL-1 … VAL-7 | `validation.py`, `limits.py` | `tests/test_unit_validation.py`; `tests/test_validation.py`, `tests/test_capacity.py`, `tests/test_pagination.py`, `tests/test_transport.py` (HTTP) |
+| DATA-1 … DATA-11 | `models.py`, `service.py`, `store.py` | `tests/test_unit_service.py`; `tests/test_programs.py`, `tests/test_collections.py`, `tests/test_cases.py`, `tests/test_validation.py` (uniqueness) (HTTP) |
 | DATA-12, DATA-13 | `store.py`; absence of LAMBDA imports; README and studio banner | Restart test in the integration suite; code inspection; UI check |
-| REV-1 … REV-5 | `service.py`, `store.py`, `validation.py` | `tests/test_unit_service.py`; `tests/test_revisions.py` (HTTP) |
+| REV-1 … REV-5 | `service.py`, `store.py`, `validation.py` | `tests/test_unit_service.py`; `tests/test_revisions.py`, and unchanged-after-failure checks in `tests/test_validation.py`, `tests/test_capacity.py`, `tests/test_failures.py` (HTTP) |
 | REV-6 | `store.py` lock | `tests/test_unit_concurrency.py`; `tests/test_concurrency.py` (threaded HTTP server, barrier-synchronized requests) |
-| PAGE-1 … PAGE-6 | `pagination.py`, `service.py` | `tests/test_unit_pagination.py`; `tests/test_pagination.py` (HTTP) |
+| PAGE-1 … PAGE-6 | `pagination.py`, `service.py` | `tests/test_unit_pagination.py`; `tests/test_pagination.py`, `tests/test_capacity.py` (snapshot cap) (HTTP) |
 | STU-1 … STU-9 | `studio/static/js/*`, `studio/__main__.py` | `tests/js/*.test.mjs` (adapter and runner); integration test with real LAMBDA3; browser demonstration |
 | DOC-1 … DOC-6 | `README.md`, `TESTING.md`, diagram, file inventory | Following the README from a clean state; Git status/inventory review |
 
@@ -304,3 +305,6 @@ The concurrency tests use a `RendezvousStore` that makes the first two
 readers of a record wait for each other. With the lock in place that wait
 times out harmlessly. Without the lock, both threads would read the same
 revision. A deliberate removal of the lock was detected this way.
+`tests/test_concurrency.py` repeats the same-revision races through a real
+threaded Werkzeug server, with the same store, and detects the same removal
+through HTTP alone.
