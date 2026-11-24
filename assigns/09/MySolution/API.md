@@ -301,7 +301,8 @@ so case creation returns no `Location`.
   - For `"error"`: `expected.category` must be `"syntax"` or `"type"`
     (`invalid_value`).
 - **Text:** every string must be encodable as UTF-8. JSON escapes for
-  unpaired surrogates, such as `"\ud800"`, return `invalid_text`.
+  unpaired surrogates, such as `"\ud800"`, return `invalid_text`. This is
+  checked right after the field's type.
 
 **Order of body checks:**
 
@@ -380,7 +381,8 @@ clients can request smaller pages. The studio's records are far smaller.
     ETag.
 
   The value must be exactly one strong entity tag in the service's form: a
-  quoted positive decimal with no leading zeros, such as `If-Match: "3"`.
+  quoted positive decimal with no leading zeros and at most 18 digits, such
+  as `If-Match: "3"`.
   Spaces around it are ignored. `If-Match` is ignored on `POST /programs` and
   `POST /collections`.
 
@@ -413,9 +415,9 @@ Each response is `{"items": [...], "next_cursor": ...}`. `items` holds full
 records; collections include their cases [PAGE-6]. `next_cursor` is `null` on
 the last page.
 
-- **Order** [PAGE-2]: oldest first, by creation. Each record gets a
-  sequence number when it is created, so ties are impossible and the order
-  does not depend on clocks. Updates do not move a record.
+- **Order** [PAGE-2]: oldest first, by creation. The store keeps records in
+  insertion order, so ties are impossible and the order does not depend on
+  clocks. Updates do not move a record.
 - **Snapshots** [PAGE-3]: a request **without** a cursor captures, in one
   atomic step, the list of all current records of that kind in order. A
   `HEAD` request does the same, because it is answered like `GET`.
@@ -442,8 +444,8 @@ the last page.
     with reason `malformed_cursor`.
   - A well-formed cursor that names no live snapshot of this list returns
     reason `unknown_cursor`. That covers an expired snapshot, one from a
-    previous process, one from the other list route, or a position the
-    service never issued [PAGE-4].
+    previous process, one from the other list route, or a position past the
+    end of the snapshot [PAGE-4].
 - **Lifetime** [PAGE-5]:
   - A snapshot stays valid while it is in use. It expires **600 seconds
     after the last request that used it**. Each page request using its

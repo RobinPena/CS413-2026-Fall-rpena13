@@ -174,17 +174,17 @@ assigns/09/MySolution/
 ├── __init__.py
 ├── __main__.py          python -m MySolution: the database service
 ├── app.py               Flask app: thin routes, JSON/error normalization, CORS
-├── http_io.py           request body decoding, If-Match parsing, JSON responses
-├── validation.py        request bodies and parameters → checked input values
-├── service.py           business rules: revisions, uniqueness, capacity, cases, pagination
-├── store.py             small storage interface and the in-memory backend (with lock)
+├── validation.py        request bodies, query parameters, If-Match → checked input values
+├── service.py           business rules: revisions, uniqueness, capacity, cases, list capture
+├── store.py             small Storage interface and the in-memory backend (with lock)
 ├── models.py            immutable Program / Collection / Case records and their JSON form
 ├── pagination.py        snapshot registry and opaque cursor tokens
+├── limits.py            the documented limits as one value
 ├── errors.py            ApiError and the stable error codes
 ├── studio/
 │   ├── __main__.py      python -m MySolution.studio: static files + /lambda/rpc forwarder
 │   └── static/          index.html, style.css, js/{storage,lambda3,runner,main}.js
-├── tests/               unittest HTTP suite; js/ adapter, runner, and integration tests
+├── tests/               test_unit_*.py: business rules; HTTP suite; js/ adapter, runner, integration
 ├── API.md               the REST contract
 ├── api.schema.json      JSON Schema for all request and response bodies
 ├── DESIGN.md            this document
@@ -206,12 +206,101 @@ brackets at the place that defines it.
 | Requirement IDs | Delivered by | Verified by |
 | --- | --- | --- |
 | CON-1, CON-2 | `API.md`, `api.schema.json` | Schema self-check, validation of every API.md example body against its route's schema, and a route- and status-table cross-check against Assign09.md (`tests/test_schema.py`) |
-| CON-3 … CON-12 | `app.py`, `http_io.py`, `errors.py` | `tests/test_transport.py`, `tests/test_failures.py` |
-| VAL-1 … VAL-7 | `validation.py` | `tests/test_validation.py`, `tests/test_pagination.py` |
-| DATA-1 … DATA-11 | `models.py`, `service.py`, `store.py` | `tests/test_programs.py`, `tests/test_collections.py`, `tests/test_cases.py` |
+| CON-3 … CON-12 | `app.py`, `errors.py` | `tests/test_transport.py`, `tests/test_failures.py` |
+| VAL-1 … VAL-7 | `validation.py` | `tests/test_unit_validation.py`; `tests/test_validation.py`, `tests/test_pagination.py` (HTTP) |
+| DATA-1 … DATA-11 | `models.py`, `service.py`, `store.py` | `tests/test_unit_service.py`; `tests/test_programs.py`, `tests/test_collections.py`, `tests/test_cases.py` (HTTP) |
 | DATA-12, DATA-13 | `store.py`; absence of LAMBDA imports; README and studio banner | Restart test in the integration suite; code inspection; UI check |
-| REV-1 … REV-5 | `service.py`, `store.py`, `http_io.py` | `tests/test_revisions.py` |
-| REV-6 | `store.py` lock | `tests/test_concurrency.py` (threaded HTTP server, barrier-synchronized requests) |
-| PAGE-1 … PAGE-6 | `pagination.py`, `service.py` | `tests/test_pagination.py` |
+| REV-1 … REV-5 | `service.py`, `store.py`, `validation.py` | `tests/test_unit_service.py`; `tests/test_revisions.py` (HTTP) |
+| REV-6 | `store.py` lock | `tests/test_unit_concurrency.py`; `tests/test_concurrency.py` (threaded HTTP server, barrier-synchronized requests) |
+| PAGE-1 … PAGE-6 | `pagination.py`, `service.py` | `tests/test_unit_pagination.py`; `tests/test_pagination.py` (HTTP) |
 | STU-1 … STU-9 | `studio/static/js/*`, `studio/__main__.py` | `tests/js/*.test.mjs` (adapter and runner); integration test with real LAMBDA3; browser demonstration |
 | DOC-1 … DOC-6 | `README.md`, `TESTING.md`, diagram, file inventory | Following the README from a clean state; Git status/inventory review |
+
+## 7. Storage, concurrency, and snapshots
+
+### Layers
+
+| Module | Responsibility | Does not |
+| --- | --- | --- |
+| `validation.py` | Turns a decoded JSON body, query parameters, and `If-Match` into checked values (`ProgramFields`, `PageRequest`, `IfMatch`, …), or raises the first `invalid_request`. | Touch the store. A failed validation therefore cannot change state. |
+| `service.py` | The business rules: existence, preconditions, uniqueness, capacity, revisions, timestamps, IDs, case order, and capturing lists. | Know about HTTP, or look inside LAMBDA source or expectations. |
+| `store.py` | The `Storage` interface (keep, find, list, count, `transaction()`) and `InMemoryStore`, which is two dictionaries and one lock. | Enforce any rule. Another backend would only need to implement `Storage`. |
+| `pagination.py` | `SnapshotRegistry`: snapshots, cursors, the idle lifetime, and the snapshot cap. | Read the store. It receives an already-captured tuple. |
+| `models.py` | The immutable records and their JSON form. | Hold any mutable state. |
+
+### Synchronization
+
+Flask's development server runs each request in its own thread (D7). Every
+service operation that reads or changes records is one
+`with store.transaction():` block. Inside it, in order:
+
+1. existence of the record, then of the case;
+2. `If-Match` present, well formed, and current;
+3. name uniqueness;
+4. capacity;
+5. the change;
+6. returning the new immutable record.
+
+That record is the captured response: turning it into JSON happens after the
+lock is released, and nothing can change it in the meantime. The store lock
+is a plain `threading.Lock`. It is never held while waiting on I/O, and the
+service makes no network calls at all.
+
+The snapshot registry has its own lock. A first page is captured under the
+store lock (`all_programs()` builds the tuple at a single instant) and then
+registered under the registry lock. The two locks are never held together,
+so they cannot deadlock.
+
+### Immutability and copy isolation
+
+- Records are frozen dataclasses, and a collection's cases are a tuple. An
+  update builds a new value with `dataclasses.replace`.
+- A value that has been returned, or captured in a snapshot, can never
+  change. The tests check that assigning to one raises `FrozenInstanceError`.
+- The `*_json` functions build new dictionaries on every call, so changing a
+  response dictionary cannot reach stored state.
+- A snapshot is a tuple of references, never a copy.
+
+### Costs
+
+These are by inspection; no benchmarks were needed.
+
+- **Record operations.** Get, save, and delete are O(1) dictionary operations.
+  A dictionary keeps insertion order, and assigning to an existing key keeps
+  its position, so creation order needs no sequence numbers.
+- **Name uniqueness** is a linear scan, at most 500 programs, 100 collections,
+  or 100 cases. A name index would be faster, but it is a second structure
+  to keep consistent on every rename and delete, which these sizes don't
+  justify.
+- **Case operations** (add, replace, delete) rebuild the case tuple: O(k) with
+  k ≤ 100, inside the lock.
+- **A first list page** builds one tuple of at most 500 references under the
+  lock. Later pages slice the snapshot in O(limit) and do not take the store
+  lock.
+- **Snapshot memory** is one reference per captured record. Record values that
+  have since been updated or deleted stay alive only while a snapshot refers
+  to them, that is, at most 600 s after the snapshot's last use, with at most
+  100 snapshots. Expired snapshots are removed oldest-used first, stopping at
+  the first live one.
+
+### Evidence
+
+`tests/test_unit_*.py` (76 tests) check these invariants:
+
+- revision increments;
+- the precondition order, including a missing record winning;
+- uniqueness scopes and renames;
+- capacities;
+- no change after any failure;
+- the ordered case lifecycle;
+- cascade deletion;
+- program/case independence;
+- immutable and detached records;
+- snapshot stability, expiry, and the cap;
+- concurrent same-revision updates, case appends, same-name creates, and
+  capacity.
+
+The concurrency tests use a `RendezvousStore` that makes the first two
+readers of a record wait for each other. With the lock in place that wait
+times out harmlessly. Without the lock, both threads would read the same
+revision. A deliberate removal of the lock was detected this way.
