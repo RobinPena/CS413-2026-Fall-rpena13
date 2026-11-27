@@ -105,29 +105,16 @@ Each group corresponds to one of the five equally weighted rubric categories.
 
 ## 3. Architecture
 
-Three local processes:
+There are three local processes:
 
-```text
- Browser: LAMBDA-studio page, served by the studio host
- ┌────────────────────────────────────────────────────────┐
- │  UI (main.js): programs, collections, run results      │
- │       │                      │                         │
- │  storage adapter           LAMBDA3 client, run logic   │
- │  (storage.js)              (lambda3.js, runner.js)     │
- └───────┼──────────────────────┼─────────────────────────┘
-         │ REST, ETag/If-Match  │ JSON-RPC 2.0, same origin
-         ▼                      ▼
- ┌────────────────────┐  ┌─────────────────────┐   ┌────────────────────┐
- │ Database service   │  │ Studio host         │   │ LAMBDA3 service    │
- │ (Assign09) :8009   │  │ (Assign09) :8010    │──▶│ (Assign07) :8000   │
- │ /api/v1/...        │  │ static page files   │   │ POST /rpc          │
- │ routes             │  │ POST /lambda/rpc    │   │ parse, type-check, │
- │ → validation       │  │ forwarder           │   │ interpret          │
- │ → business rules   │  │ (no LAMBDA logic)   │   │ (unchanged)        │
- │ → in-memory store  │  └─────────────────────┘   └────────────────────┘
- │ (no LAMBDA code)   │
- └────────────────────┘
-```
+- the database service (Assign09, port 8009);
+- the studio host (Assign09, port 8010), which serves the page and forwards
+  its LAMBDA3 requests;
+- the LAMBDA3 service (Assign07, unchanged, port 8000).
+
+The architecture diagram is in `README.md`, under "Architecture". It shows
+the studio, the storage adapter, the REST API layers, the in-memory store,
+and LAMBDA3.
 
 The page comes from the studio host, so its calls to the database service
 are cross-origin. The database service answers them with CORS headers for
@@ -154,20 +141,20 @@ that one origin (D4).
 | D1 | Flask 3.1.3 (Werkzeug 3.1.9) is the HTTP framework. | The instructor names it: Assign07.md, "Use Flask, FastAPI, or another instructor-approved Python web framework." Assign07 and Assign08 used it. |
 | D2 | Python ≥ 3.12, tested with 3.14.10. The only extra dependency is `jsonschema` 4.26.0, used by the tests. | Assign09 requires 3.12+. The same `jsonschema` version validated Assign07's schema. |
 | D3 | The client is a new small demonstration studio: plain HTML, CSS, and ES-module JavaScript, with no build step. | Assign03 produced requirements only, with no studio code. Assign08's client is an N-Queens animator. Assign09 allows "an equivalent small demonstration client". Assign08's injectable-`fetch` RPC client pattern is reused. |
-| D4 | A small studio host serves the page and forwards `POST /lambda/rpc` unchanged to the Assign07 service. The database service sends CORS headers only for the configured studio origin, exposing `ETag` and allowing `If-Match`. | Observed on 2026-11-23: Assign07 answers the CORS preflight `OPTIONS /rpc` with `405` and sends no `Access-Control-Allow-Origin`, so a browser page cannot call it from another origin. Earlier assignments are not modified. The forwarder holds no LAMBDA logic and lives outside the database service, so the database stays free of execution. |
+| D4 | A small studio host serves the page and forwards `POST /lambda/rpc` unchanged to the Assign07 service. It also serves `/config.json`, which tells the page the database URL (`--database-url`). The database service sends CORS headers only for the configured studio origin, exposing `ETag` and allowing `If-Match`. | Observed on 2026-11-23: Assign07 answers the CORS preflight `OPTIONS /rpc` with `405` and sends no `Access-Control-Allow-Origin`, so a browser page cannot call it from another origin. Earlier assignments are not modified. The forwarder holds no LAMBDA logic and lives outside the database service, so the database stays free of execution. |
 | D5 | Cases run through Assign07's `lambda.interpret`. `-32010` is the syntax category and `-32011` the type category. Every other outcome fails an error expectation: `-32012` timeout, `-32013` runtime error, `-326xx`, HTTP or transport failures. | Probed on the real service: `fact(6)` gives `{"type":"sint","value":"720"}`, `if then` gives `-32010`, `(lam (x: sint) => x)(true)` gives `-32011`, and `1 / 0` gives `-32013`. |
 | D6 | Assign08's service is not used for execution. | It exposes only the fixed N-Queens solver and deliberately refuses arbitrary source, so it cannot run stored cases. |
 | D7 | One lock in the in-memory store covers each operation from start to finish: existence, revision, uniqueness, and capacity checks, the mutation, and capturing the response. Flask runs threaded. No network calls happen in the database service. | This is the simplest model that makes mutations atomic under Flask's threaded server. |
 | D8 | Stored records are immutable values (frozen dataclasses, cases as tuples). An update replaces a record. A list snapshot holds references to the captured values. | Returned and snapshotted data cannot be mutated through the store. A snapshot costs one reference per record rather than a deep copy. This avoids both slicing live data and storing IDs for later lookup. |
 | D9 | The machine-readable contract is JSON Schema 2020-12 (`api.schema.json`), with one `$defs` entry per request and response body. Tests check the schema itself and validate every response against it. | Assign09 accepts JSON Schema for all bodies. It reuses the Assign07 tooling, with no extra validator package. |
-| D10 | API tests use `unittest` with Flask's test client. Client tests use Node's built-in test runner (no npm packages). An integration test starts the real database service, studio host, and Assign07 service on free ports. | These are the same tools Assign07 and Assign08 used. Successful execution is only ever tested against the real LAMBDA3. |
+| D10 | API tests use `unittest` with Flask's test client. Client modules are tested with Node's built-in test runner (no npm packages). The studio flows are driven in headless Chrome over the DevTools protocol (`tests/browser/studio_flows.mjs`), against the real database service, studio host, and Assign07 service, each started on a free port. | These are the same tools Assign07 and Assign08 used. Successful execution is only ever tested against the real LAMBDA3. |
 | D11 | The Assign07 service is started from `../07` with its own documented command. The studio host takes `--lambda-url`, and the database service takes `--studio-origin`. | Instructions use relative paths and command options, never absolute paths. |
 | D12 | Request validation runs before the store is consulted. Inside the lock the order is: existence → `If-Match` present → `If-Match` well formed → revision → uniqueness → capacity (API.md §9). | Assign09 requires only that a missing record wins over a missing or stale precondition. Validating first keeps the work under the lock small. |
 | D13 | `If-Match` must be exactly one strong quoted revision. `*`, weak tags, lists, and unquoted values return `400 malformed_if_match` (API.md §5). | `*` would let a client overwrite a newer revision without seeing it, which is exactly what Assign09 forbids. |
 | D14 | Limits: source 65,536 UTF-8 bytes (Assign07's own limit), names 100 characters, descriptions 1,000 characters, expected values 8,192 bytes, 500 programs, 100 collections, 100 cases per collection, pages 1–100 (default 50), 1 MiB bodies (API.md §4). | All five supplied LAMBDA3 libraries together are 21,603 bytes, so a test case can embed them. Any stored source can be sent to LAMBDA3 unchanged. |
 | D15 | List snapshots expire 600 s after their last use. At most 100 are open; a new multi-page first page past that cap returns `409 capacity_limit` (`list_snapshots`), and valid snapshots are never evicted early. A list that fits in one page creates no snapshot (API.md §6). | This honours Assign09's promise that a cursor chain stays stable, while bounding memory. Snapshots share immutable record values (D8), so each costs one reference per record. |
 
-## 5. Proposed file layout
+## 5. File layout
 
 ```text
 assigns/09/MySolution/
@@ -181,11 +168,15 @@ assigns/09/MySolution/
 ├── pagination.py        snapshot registry and opaque cursor tokens
 ├── limits.py            the documented limits as one value
 ├── errors.py            ApiError and the stable error codes
-├── studio/
-│   ├── __main__.py      python -m MySolution.studio: static files + /lambda/rpc forwarder
+├── studio/              the studio host (a separate process; imports nothing above)
+│   ├── __main__.py      python -m MySolution.studio: command-line options
+│   ├── host.py          the page, /config.json, and the POST /lambda/rpc forwarder
 │   └── static/          index.html, style.css, js/{storage,lambda3,runner,main}.js
-├── tests/               test_unit_*.py: business rules without HTTP; test_*.py: HTTP suite
-│                        (http_support.py, race_support.py); js/ adapter, runner, integration
+├── tests/               test_unit_*.py: business rules without HTTP (unit_support.py);
+│                        test_*.py: HTTP suite (http_support.py, race_support.py);
+│                        test_studio_host.py: with the real LAMBDA3 (process_support.py);
+│                        js/*.test.mjs: studio modules (Node);
+│                        browser/studio_flows.mjs: the studio flows in headless Chrome
 ├── API.md               the REST contract
 ├── api.schema.json      JSON Schema for all request and response bodies
 ├── DESIGN.md            this document
@@ -195,9 +186,12 @@ assigns/09/MySolution/
 └── .gitignore           .venv/, __pycache__/
 ```
 
-Module names may be merged while the code is written if a split turns out to
-be trivial. The boundaries stay the same: routes, validation, business rules,
-and storage.
+The database service keeps four boundaries:
+
+- routes (`app.py`);
+- validation (`validation.py`);
+- business rules (`service.py`);
+- storage (`store.py`).
 
 ## 6. Requirement traceability
 
@@ -210,11 +204,11 @@ brackets at the place that defines it.
 | CON-3 … CON-12 | `app.py`, `errors.py` | `tests/test_transport.py`, `tests/test_failures.py`; error statuses in every HTTP test |
 | VAL-1 … VAL-7 | `validation.py`, `limits.py` | `tests/test_unit_validation.py`; `tests/test_validation.py`, `tests/test_capacity.py`, `tests/test_pagination.py`, `tests/test_transport.py` (HTTP) |
 | DATA-1 … DATA-11 | `models.py`, `service.py`, `store.py` | `tests/test_unit_service.py`; `tests/test_programs.py`, `tests/test_collections.py`, `tests/test_cases.py`, `tests/test_validation.py` (uniqueness) (HTTP) |
-| DATA-12, DATA-13 | `store.py`; absence of LAMBDA imports; README and studio banner | Restart test in the integration suite; code inspection; UI check |
+| DATA-12, DATA-13 | `store.py`; absence of LAMBDA imports; README and studio banner | Browser check DATA-12 (restart clears data; the banner is shown, S1); `tests/test_studio_host.py` (the studio host loads no database code); code inspection |
 | REV-1 … REV-5 | `service.py`, `store.py`, `validation.py` | `tests/test_unit_service.py`; `tests/test_revisions.py`, and unchanged-after-failure checks in `tests/test_validation.py`, `tests/test_capacity.py`, `tests/test_failures.py` (HTTP) |
 | REV-6 | `store.py` lock | `tests/test_unit_concurrency.py`; `tests/test_concurrency.py` (threaded HTTP server, barrier-synchronized requests) |
 | PAGE-1 … PAGE-6 | `pagination.py`, `service.py` | `tests/test_unit_pagination.py`; `tests/test_pagination.py`, `tests/test_capacity.py` (snapshot cap) (HTTP) |
-| STU-1 … STU-9 | `studio/static/js/*`, `studio/__main__.py` | `tests/js/*.test.mjs` (adapter and runner); integration test with real LAMBDA3; browser demonstration |
+| STU-1 … STU-9 | `studio/static/js/*`, `studio/host.py` | `tests/js/*.test.mjs` (adapter, LAMBDA3 client, run logic, boundaries); `tests/test_studio_host.py` (forwarder, real LAMBDA3); `tests/browser/studio_flows.mjs` (every flow against the real services) |
 | DOC-1 … DOC-6 | `README.md`, `TESTING.md`, diagram, file inventory | Following the README from a clean state; Git status/inventory review |
 
 ## 7. Storage, concurrency, and snapshots

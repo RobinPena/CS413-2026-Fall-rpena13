@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LAMBDA-studio</title>
+  <link rel="stylesheet" href="static/style.css">
+  <script type="module" src="static/js/main.js"></script>
+</head>
+<body>
+  <header class="top">
+    <h1>LAMBDA-studio</h1>
+    <div class="services">
+      <span id="db-status" class="chip">Database: checking…</span>
+      <span id="lambda-status" class="chip">LAMBDA3: checking…</span>
+    </div>
+  </header>
+
+  <p id="memory-warning" class="banner" role="note">
+    <strong>Saved work is temporary.</strong>
+    Programs and test collections are kept only in the database service's memory.
+    They survive browser reloads, but they are erased when the database service stops or restarts.
+  </p>
+
+  <p id="message" class="message" role="status" aria-live="polite" hidden></p>
+
+  <nav class="tabs" role="tablist" aria-label="Studio sections">
+    <button id="tab-programs" role="tab" aria-selected="true" aria-controls="programs-view">Programs</button>
+    <button id="tab-collections" role="tab" aria-selected="false" aria-controls="collections-view">Test collections</button>
+  </nav>
+
+  <main>
+    <!-- Programs: list, editor, save, conflict recovery -->
+    <section id="programs-view" class="view" role="tabpanel" aria-labelledby="tab-programs">
+      <aside class="sidebar">
+        <div class="sidebar-head">
+          <h2>Saved programs</h2>
+          <button id="programs-refresh" type="button">Refresh</button>
+        </div>
+        <button id="program-new" type="button" class="wide">New program</button>
+        <ul id="program-list" class="record-list"></ul>
+        <p id="program-list-empty" class="empty">No saved programs yet.</p>
+      </aside>
+
+      <div class="workspace">
+        <div class="workspace-head">
+          <h2 id="program-title">New program</h2>
+          <span id="program-unsaved" class="badge unsaved" hidden>Unsaved changes</span>
+          <span id="program-meta" class="meta"></span>
+        </div>
+
+        <div id="program-conflict" class="conflict" role="alert" hidden>
+          <p id="program-conflict-text"></p>
+          <div class="actions">
+            <button id="program-conflict-reload" type="button">Reload server copy</button>
+            <button id="program-conflict-dismiss" type="button">Keep editing</button>
+          </div>
+        </div>
+        <details id="program-kept" class="kept" hidden>
+          <summary>Your unsaved version, kept after reloading</summary>
+          <pre id="program-kept-text"></pre>
+        </details>
+
+        <label for="program-name">Name</label>
+        <input id="program-name" autocomplete="off" maxlength="200">
+        <label for="program-description">Description <span class="hint">(optional)</span></label>
+        <input id="program-description" autocomplete="off">
+        <label for="program-source">Source</label>
+        <textarea id="program-source" rows="12" spellcheck="false"></textarea>
+
+        <div class="actions">
+          <button id="program-save" type="button" class="primary">Save</button>
+          <button id="program-reload" type="button">Reload from server</button>
+          <button id="program-run" type="button">Run in LAMBDA3</button>
+          <button id="program-delete" type="button" class="danger">Delete</button>
+        </div>
+        <pre id="program-output" class="output" hidden></pre>
+      </div>
+    </section>
+
+    <!-- Test collections: list, create, cases, run -->
+    <section id="collections-view" class="view" role="tabpanel" aria-labelledby="tab-collections" hidden>
+      <aside class="sidebar">
+        <div class="sidebar-head">
+          <h2>Test collections</h2>
+          <button id="collections-refresh" type="button">Refresh</button>
+        </div>
+        <form id="collection-create" class="stack">
+          <label for="new-collection-name">New collection name</label>
+          <input id="new-collection-name" autocomplete="off">
+          <label for="new-collection-description">Description <span class="hint">(optional)</span></label>
+          <input id="new-collection-description" autocomplete="off">
+          <button type="submit" class="wide">Create collection</button>
+        </form>
+        <ul id="collection-list" class="record-list"></ul>
+        <p id="collection-list-empty" class="empty">No test collections yet.</p>
+      </aside>
+
+      <div class="workspace">
+        <p id="collection-none" class="empty">Create or select a test collection.</p>
+
+        <div id="collection-detail" hidden>
+          <div class="workspace-head">
+            <h2 id="collection-title"></h2>
+            <span id="collection-meta" class="meta"></span>
+          </div>
+
+          <div id="collection-conflict" class="conflict" role="alert" hidden>
+            <p id="collection-conflict-text"></p>
+            <div class="actions">
+              <button id="collection-conflict-reload" type="button">Reload collection</button>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button id="collection-run" type="button" class="primary">Run all cases</button>
+            <button id="collection-reload" type="button">Reload collection</button>
+            <button id="collection-delete" type="button" class="danger">Delete collection</button>
+          </div>
+
+          <section id="run-section" class="box" hidden>
+            <h3>Run results</h3>
+            <p id="run-summary" class="summary"></p>
+            <table id="run-table">
+              <thead><tr><th>#</th><th>Case</th><th>Expected</th><th>Actual</th><th>Result</th></tr></thead>
+              <tbody id="run-results"></tbody>
+            </table>
+          </section>
+
+          <details id="collection-details-box" class="box">
+            <summary>Name and description <span id="collection-unsaved" class="badge unsaved" hidden>Unsaved changes</span></summary>
+            <label for="collection-name">Name</label>
+            <input id="collection-name" autocomplete="off">
+            <label for="collection-description">Description</label>
+            <input id="collection-description" autocomplete="off">
+            <div class="actions"><button id="collection-save" type="button">Save name and description</button></div>
+          </details>
+
+          <h3>Cases <span class="hint">(run in this order)</span></h3>
+          <ol id="case-list" class="case-list"></ol>
+          <p id="case-list-empty" class="empty">This collection has no cases yet.</p>
+
+          <form id="case-form" class="box stack">
+            <div class="workspace-head">
+              <h3 id="case-form-title">Add a case</h3>
+              <span id="case-unsaved" class="badge unsaved" hidden>Unsaved case</span>
+            </div>
+            <label for="case-name">Case name</label>
+            <input id="case-name" autocomplete="off">
+            <div class="label-row">
+              <label for="case-source">Source</label>
+              <button id="case-use-program" type="button" class="link">Copy the program editor's source</button>
+            </div>
+            <textarea id="case-source" rows="6" spellcheck="false"></textarea>
+            <label for="case-expected-kind">Expected outcome</label>
+            <select id="case-expected-kind">
+              <option value="value">A value</option>
+              <option value="syntax">A syntax error</option>
+              <option value="type">A type error</option>
+            </select>
+            <div id="case-value-row">
+              <label for="case-expected-value">Expected value, exactly as LAMBDA3 formats it</label>
+              <input id="case-expected-value" autocomplete="off" spellcheck="false">
+            </div>
+            <label for="case-description">Description <span class="hint">(optional)</span></label>
+            <input id="case-description" autocomplete="off">
+            <div class="actions">
+              <button id="case-save" type="submit" class="primary">Add case</button>
+              <button id="case-cancel" type="button">Clear</button>
+            </div>
+          </form>
+
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
